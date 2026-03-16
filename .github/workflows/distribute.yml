@@ -1,0 +1,53 @@
+name: Build & Distribute APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # allow manual trigger from GitHub UI
+
+jobs:
+  build-and-distribute:
+    name: Build APK → Firebase App Distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── 2. Java 17 (required by Android Gradle) ────────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # ── 3. Flutter ─────────────────────────────────────────────────
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+          cache: true
+
+      # ── 4. Write google-services.json from secret ──────────────────
+      - name: Write google-services.json
+        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+
+      # ── 5. Install dependencies ────────────────────────────────────
+      - name: Flutter pub get
+        run: flutter pub get
+
+      # ── 6. Build debug APK ─────────────────────────────────────────
+      - name: Build APK
+        run: flutter build apk --debug
+
+      # ── 7. Upload to Firebase App Distribution ─────────────────────
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: 1:205599538881:android:0e59d5154d7cbc4f3f1e40
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          testers: saurabh321gupta@gmail.com
+          file: build/app/outputs/flutter-apk/app-debug.apk
+          releaseNotes: "Build from commit ${{ github.sha }} — ${{ github.event.head_commit.message }}"
