@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
@@ -195,8 +194,8 @@ class _OtpScreenState extends State<OtpScreen> {
 
               const SizedBox(height: 32),
 
-              // ── Dev OTP display (debug builds only) ──────────────────
-              if (kDebugMode && widget.devOtp != null)
+              // ── Dev OTP display ───────────────────────────────────────
+              if (widget.devOtp != null)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
