@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
@@ -28,8 +29,35 @@ class _OtpScreenState extends State<OtpScreen> {
   bool _isLoading = false;
   String _errorMessage = '';
 
+  // Countdown timer (Bumble shows "This code should arrive within Xs")
+  int _secondsRemaining = 30;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown();
+    // Auto-focus first field
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNodes[0].requestFocus();
+    });
+  }
+
+  void _startCountdown() {
+    _secondsRemaining = 30;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 0) {
+        setState(() => _secondsRemaining--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _timer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -39,8 +67,7 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
-  String get _enteredOtp =>
-      _controllers.map((c) => c.text).join();
+  String get _enteredOtp => _controllers.map((c) => c.text).join();
 
   Future<void> _verify() async {
     if (_enteredOtp.length < 6) {
@@ -63,7 +90,7 @@ class _OtpScreenState extends State<OtpScreen> {
       return;
     }
 
-    // OTP valid — sign in or create account based on flow
+    // OTP valid — sign in or create account
     final user = widget.isSignIn
         ? await _authService.signIn(widget.email)
         : await _authService.createAccount(widget.email);
@@ -73,17 +100,16 @@ class _OtpScreenState extends State<OtpScreen> {
     if (!mounted) return;
 
     if (user == null) {
-      setState(() => _errorMessage =
-          widget.isSignIn ? 'Sign in failed. Try again.' : 'Account creation failed. Try again.');
+      setState(() => _errorMessage = widget.isSignIn
+          ? 'Sign in failed. Try again.'
+          : 'Account creation failed. Try again.');
       return;
     }
 
     if (widget.isSignIn) {
-      // Check if profile is complete, if not send to profile setup
       final hasProfile = await _authService.hasProfile(user.uid);
       if (!mounted) return;
       if (hasProfile) {
-        // _AuthGate in main.dart will auto-navigate to HomeScreen
         Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         Navigator.pushReplacement(
@@ -97,7 +123,6 @@ class _OtpScreenState extends State<OtpScreen> {
         );
       }
     } else {
-      // Sign-up: always go to profile setup
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -123,151 +148,263 @@ class _OtpScreenState extends State<OtpScreen> {
     }
   }
 
+  void _handleKeyEvent(int index, KeyEvent event) {
+    // Handle backspace on empty field to go back
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.backspace &&
+        _controllers[index].text.isEmpty &&
+        index > 0) {
+      _controllers[index - 1].clear();
+      _focusNodes[index - 1].requestFocus();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-
-              const Text(
-                'Check your email',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Back button
+            Padding(
+              padding: const EdgeInsets.only(left: 8, top: 8),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, size: 26),
+                color: Colors.black87,
               ),
-              const SizedBox(height: 10),
-              Text(
-                'We sent a 6-digit code to\n${widget.email}',
-                style: const TextStyle(fontSize: 15, color: Colors.grey, height: 1.5),
-              ),
+            ),
 
-              const SizedBox(height: 40),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
 
-              // 6-digit OTP input boxes
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 48,
-                    height: 56,
-                    child: TextFormField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      decoration: InputDecoration(
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: Colors.pink, width: 2),
-                        ),
+                    // Heading (Bumble style)
+                    const Text(
+                      'Verify your email',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
                       ),
-                      onChanged: (val) => _onDigitEntered(index, val),
                     ),
-                  );
-                }),
-              ),
+                    const SizedBox(height: 12),
 
-              const SizedBox(height: 16),
-
-              if (_errorMessage.isNotEmpty)
-                Text(
-                  _errorMessage,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
-                ),
-
-              const SizedBox(height: 32),
-
-              // ── Dev OTP display ───────────────────────────────────────
-              if (widget.devOtp != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    border: Border.all(color: Colors.amber.shade700),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.bug_report,
-                          color: Colors.amber.shade800, size: 18),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Dev OTP: ${widget.devOtp}',
+                    // Subtitle with email
+                    RichText(
+                      text: TextSpan(
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber.shade900,
-                          letterSpacing: 2,
+                          color: Colors.grey.shade600,
+                          height: 1.5,
+                        ),
+                        children: [
+                          const TextSpan(
+                              text: 'Enter the code we\'ve sent to\n'),
+                          TextSpan(
+                            text: widget.email,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // "Change email" link (like Bumble's "Change number")
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Text(
+                        'Change email',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFE91E63),
+                          decoration: TextDecoration.underline,
+                          decorationColor: Color(0xFFE91E63),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verify,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.pink,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
+
+                    const SizedBox(height: 36),
+
+                    // "Code" label
+                    Text(
+                      'Code',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 6-digit OTP input (Bumble style — rounded boxes)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(6, (index) {
+                        return SizedBox(
+                          width: 48,
+                          height: 56,
+                          child: KeyboardListener(
+                            focusNode: FocusNode(),
+                            onKeyEvent: (event) =>
+                                _handleKeyEvent(index, event),
+                            child: TextFormField(
+                              controller: _controllers[index],
+                              focusNode: _focusNodes[index],
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              maxLength: 1,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              decoration: InputDecoration(
+                                counterText: '',
+                                filled: true,
+                                fillColor: Colors.grey.shade50,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                      color: Colors.grey.shade300),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                      color: Colors.grey.shade300),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFFE91E63), width: 2),
+                                ),
+                              ),
+                              onChanged: (val) =>
+                                  _onDigitEntered(index, val),
+                            ),
                           ),
-                        )
-                      : const Text(
-                          'Verify',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        );
+                      }),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Error message
+                    if (_errorMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          _errorMessage,
+                          style: const TextStyle(
+                              color: Colors.red, fontSize: 13),
                         ),
+                      ),
+
+                    // Loading indicator
+                    if (_isLoading)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Loading...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 8),
+
+                    // Countdown timer (Bumble style)
+                    if (_secondsRemaining > 0)
+                      Text(
+                        'This code should arrive within ${_secondsRemaining}s',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    if (_secondsRemaining == 0)
+                      GestureDetector(
+                        onTap: () {
+                          // Go back to resend
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'Didn\'t receive it? Go back and try again',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFFE91E63),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 24),
+
+                    // Dev OTP banner
+                    if (widget.devOtp != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          border: Border.all(color: Colors.amber.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.bug_report,
+                                color: Colors.amber.shade700, size: 18),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Dev OTP: ${widget.devOtp}',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.amber.shade900,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const Spacer(),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              // Resend
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Didn\'t receive it? Go back and try again',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
