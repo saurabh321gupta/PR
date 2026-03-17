@@ -55,7 +55,7 @@ lib/generated_plugin_registrant.dart
 *.env
 google-services.json
 GoogleService-Info.plist
-firebase_options.dart
+# firebase_options.dart is intentionally committed (client-side config only)
 
 # IDE
 .idea/
