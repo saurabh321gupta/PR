@@ -37,8 +37,7 @@ class ProfileDetailScreen extends StatelessWidget {
         children: [
           // ── Scrollable profile content ───────────────────────────────
           SingleChildScrollView(
-            padding: EdgeInsets.only(
-                bottom: onLike != null && onPass != null ? 120 : 24),
+            padding: const EdgeInsets.only(bottom: 120),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
