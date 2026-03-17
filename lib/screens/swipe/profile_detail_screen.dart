@@ -3,14 +3,14 @@ import '../../models/user_model.dart';
 
 class ProfileDetailScreen extends StatelessWidget {
   final UserModel user;
-  final VoidCallback onLike;
-  final VoidCallback onPass;
+  final VoidCallback? onLike;
+  final VoidCallback? onPass;
 
   const ProfileDetailScreen({
     super.key,
     required this.user,
-    required this.onLike,
-    required this.onPass,
+    this.onLike,
+    this.onPass,
   });
 
   Color _avatarColor() {
@@ -37,7 +37,8 @@ class ProfileDetailScreen extends StatelessWidget {
         children: [
           // ── Scrollable profile content ───────────────────────────────
           SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 120),
+            padding: EdgeInsets.only(
+                bottom: onLike != null && onPass != null ? 120 : 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -168,52 +169,50 @@ class ProfileDetailScreen extends StatelessWidget {
             ),
           ),
 
-          // ── Bottom action bar ────────────────────────────────────────
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.only(
-                left: 48,
-                right: 48,
-                top: 16,
-                bottom: MediaQuery.of(context).padding.bottom + 20,
-              ),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, -4)),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Pass button
-                  _actionBtn(
-                    icon: Icons.close,
-                    color: Colors.red.shade400,
-                    size: 60,
-                    onTap: () {
-                      Navigator.pop(context);
-                      onPass();
-                    },
-                  ),
-
-                  // Like button
-                  _actionBtn(
-                    icon: Icons.favorite,
-                    color: Colors.pink,
-                    size: 68,
-                    onTap: () {
-                      Navigator.pop(context);
-                      onLike();
-                    },
-                  ),
-                ],
+          // ── Bottom action bar (only shown from swipe screen) ─────────
+          if (onLike != null && onPass != null)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.only(
+                  left: 48,
+                  right: 48,
+                  top: 16,
+                  bottom: MediaQuery.of(context).padding.bottom + 20,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, -4)),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _actionBtn(
+                      icon: Icons.close,
+                      color: Colors.red.shade400,
+                      size: 60,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onPass!();
+                      },
+                    ),
+                    _actionBtn(
+                      icon: Icons.favorite,
+                      color: Colors.pink,
+                      size: 68,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onLike!();
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

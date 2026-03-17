@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_model.dart';
 import '../../services/chat_service.dart';
+import '../swipe/profile_detail_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String matchId;
@@ -81,44 +82,58 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         leadingWidth: 30,
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: _avatarColor(),
-              child: Text(
-                widget.otherUser.firstName.isNotEmpty
-                    ? widget.otherUser.firstName[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold),
+        title: GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProfileDetailScreen(user: widget.otherUser),
+            ),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: _avatarColor(),
+                backgroundImage: widget.otherUser.photos.isNotEmpty
+                    ? NetworkImage(widget.otherUser.photos[0])
+                    : null,
+                child: widget.otherUser.photos.isEmpty
+                    ? Text(
+                        widget.otherUser.firstName.isNotEmpty
+                            ? widget.otherUser.firstName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                      )
+                    : null,
               ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      widget.otherUser.firstName,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        widget.otherUser.firstName,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.verified, size: 14, color: Colors.green.shade600),
-                  ],
-                ),
-                const Text(
-                  'Verified professional',
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-              ],
-            ),
-          ],
+                      const SizedBox(width: 4),
+                      Icon(Icons.verified,
+                          size: 14, color: Colors.green.shade600),
+                    ],
+                  ),
+                  const Text(
+                    'Verified professional',
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
