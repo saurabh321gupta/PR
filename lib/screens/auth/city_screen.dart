@@ -112,7 +112,7 @@ class _CityScreenState extends State<CityScreen> {
                           crossAxisCount: 2,
                           mainAxisSpacing: 14,
                           crossAxisSpacing: 14,
-                          childAspectRatio: 2.2,
+                          childAspectRatio: 1.3,
                         ),
                         itemCount: _cities.length,
                         itemBuilder: (context, index) {
@@ -133,7 +133,7 @@ class _CityScreenState extends State<CityScreen> {
                                     : city.enabled
                                         ? Colors.white
                                         : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: isSelected
                                       ? const Color(0xFFE91E63)
@@ -142,24 +142,33 @@ class _CityScreenState extends State<CityScreen> {
                                           : Colors.grey.shade200,
                                   width: isSelected ? 2 : 1.5,
                                 ),
+                                boxShadow: city.enabled && !isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ]
+                                    : null,
                               ),
                               child: Stack(
                                 children: [
                                   Center(
-                                    child: Row(
+                                    child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           city.emoji,
                                           style: TextStyle(
-                                            fontSize: 22,
+                                            fontSize: 32,
                                             color: city.enabled
                                                 ? null
                                                 : Colors.grey.shade400,
                                           ),
                                         ),
-                                        const SizedBox(width: 10),
+                                        const SizedBox(height: 12),
                                         Text(
                                           city.name,
                                           style: TextStyle(
@@ -178,8 +187,8 @@ class _CityScreenState extends State<CityScreen> {
                                   // "Coming soon" badge for disabled cities
                                   if (!city.enabled)
                                     Positioned(
-                                      top: 6,
-                                      right: 8,
+                                      top: 10,
+                                      right: 10,
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 6, vertical: 2),
@@ -201,8 +210,8 @@ class _CityScreenState extends State<CityScreen> {
                                   // Checkmark for selected
                                   if (isSelected)
                                     const Positioned(
-                                      top: 8,
-                                      right: 8,
+                                      top: 12,
+                                      right: 12,
                                       child: Icon(
                                         Icons.check_circle,
                                         color: Color(0xFFE91E63),
