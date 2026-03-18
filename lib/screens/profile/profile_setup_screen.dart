@@ -9,11 +9,13 @@ import '../home_screen.dart';
 class ProfileSetupScreen extends StatefulWidget {
   final String userId;
   final String workEmail;
+  final String? city;
 
   const ProfileSetupScreen({
     super.key,
     required this.userId,
     required this.workEmail,
+    this.city,
   });
 
   @override

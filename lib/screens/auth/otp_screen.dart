@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
-import '../profile/profile_setup_screen.dart';
+import 'city_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String email;
@@ -115,7 +115,7 @@ class _OtpScreenState extends State<OtpScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => ProfileSetupScreen(
+            builder: (_) => CityScreen(
               userId: user.uid,
               workEmail: widget.email,
             ),
@@ -126,7 +126,7 @@ class _OtpScreenState extends State<OtpScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => ProfileSetupScreen(
+          builder: (_) => CityScreen(
             userId: user.uid,
             workEmail: widget.email,
           ),

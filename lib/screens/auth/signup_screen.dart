@@ -134,7 +134,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                     // Big bold heading (Bumble style)
                     const Text(
-                      'Can we get your\nwork email, please?',
+                      'Let\'s start with\nyour work email.',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
