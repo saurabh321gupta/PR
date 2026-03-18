@@ -18,17 +18,15 @@ class NotificationService {
   static final _db = FirebaseFirestore.instance;
 
   /// Call from HomeScreen.initState() after the user is signed in.
+  /// Does NOT request permission — that's handled by NotificationScreen.
   static Future<void> init() async {
-    // Request permission (required on iOS; Android 13+ also needs this)
-    final settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    // Only save token if permission was already granted
+    final settings = await _messaging.getNotificationSettings();
     debugPrint('🔔 Notification permission: ${settings.authorizationStatus}');
-
-    // Save token for this device
-    await _saveToken();
+    if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional) {
+      await _saveToken();
+    }
 
     // Refresh token whenever it changes (e.g. after reinstall)
     _messaging.onTokenRefresh.listen(_updateToken);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../profile/profile_setup_screen.dart';
+import 'notification_screen.dart';
 
 class CityScreen extends StatefulWidget {
   final String userId;
@@ -17,12 +17,12 @@ class CityScreen extends StatefulWidget {
 
 class _CityItem {
   final String name;
-  final String emoji;
+  final String? assetPath; // local asset for enabled cities
   final bool enabled;
 
   const _CityItem({
     required this.name,
-    required this.emoji,
+    this.assetPath,
     this.enabled = false,
   });
 }
@@ -31,11 +31,15 @@ class _CityScreenState extends State<CityScreen> {
   String? _selectedCity;
 
   static const List<_CityItem> _cities = [
-    _CityItem(name: 'Bangalore', emoji: '🏙️', enabled: true),
-    _CityItem(name: 'Pune', emoji: '🌆'),
-    _CityItem(name: 'Hyderabad', emoji: '🕌'),
-    _CityItem(name: 'Chennai', emoji: '🏛️'),
-    _CityItem(name: 'Delhi-NCR', emoji: '🏰'),
+    _CityItem(
+      name: 'Bangalore',
+      assetPath: 'assets/cities/bangalore.jpg',
+      enabled: true,
+    ),
+    _CityItem(name: 'Pune'),
+    _CityItem(name: 'Hyderabad'),
+    _CityItem(name: 'Chennai'),
+    _CityItem(name: 'Delhi-NCR'),
   ];
 
   void _proceed() {
@@ -44,7 +48,7 @@ class _CityScreenState extends State<CityScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => ProfileSetupScreen(
+        builder: (_) => NotificationScreen(
           userId: widget.userId,
           workEmail: widget.workEmail,
           city: _selectedCity!,
@@ -101,18 +105,18 @@ class _CityScreenState extends State<CityScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
                     // City tiles grid
                     Expanded(
                       child: GridView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets.zero,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           mainAxisSpacing: 14,
                           crossAxisSpacing: 14,
-                          childAspectRatio: 2.2,
+                          childAspectRatio: 0.9,
                         ),
                         itemCount: _cities.length,
                         itemBuilder: (context, index) {
@@ -122,94 +126,146 @@ class _CityScreenState extends State<CityScreen> {
                           return GestureDetector(
                             onTap: city.enabled
                                 ? () {
-                                    setState(() => _selectedCity = city.name);
+                                    setState(
+                                        () => _selectedCity = city.name);
                                   }
                                 : null,
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFFCE4EC)
-                                    : city.enabled
-                                        ? Colors.white
-                                        : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFFE91E63)
-                                      : city.enabled
-                                          ? Colors.grey.shade300
-                                          : Colors.grey.shade200,
-                                  width: isSelected ? 2 : 1.5,
-                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: isSelected
+                                    ? Border.all(
+                                        color: const Color(0xFFE91E63),
+                                        width: 3,
+                                      )
+                                    : null,
                               ),
-                              child: Stack(
-                                children: [
-                                  Center(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          city.emoji,
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            color: city.enabled
-                                                ? null
-                                                : Colors.grey.shade400,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          city.name,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: isSelected
-                                                ? const Color(0xFFE91E63)
-                                                : city.enabled
-                                                    ? Colors.black87
-                                                    : Colors.grey.shade400,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // "Coming soon" badge for disabled cities
-                                  if (!city.enabled)
-                                    Positioned(
-                                      top: 6,
-                                      right: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 2),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                    isSelected ? 13 : 16),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    // City image or grey placeholder
+                                    if (city.enabled &&
+                                        city.assetPath != null)
+                                      Image.asset(
+                                        city.assetPath!,
+                                        fit: BoxFit.cover,
+                                      )
+                                    else
+                                      // Grey gradient for disabled cities
+                                      Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade300,
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          'Soon',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.grey.shade600,
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.grey.shade300,
+                                              Colors.grey.shade500,
+                                            ],
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  // Checkmark for selected
-                                  if (isSelected)
-                                    const Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Icon(
-                                        Icons.check_circle,
-                                        color: Color(0xFFE91E63),
-                                        size: 20,
+
+                                    // Bottom gradient overlay for text
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.transparent,
+                                            Colors.transparent,
+                                            Colors.black
+                                                .withValues(alpha: 0.6),
+                                            Colors.black
+                                                .withValues(alpha: 0.8),
+                                          ],
+                                          stops: const [0.0, 0.4, 0.75, 1.0],
+                                        ),
                                       ),
                                     ),
-                                ],
+
+                                    // City name + country label
+                                    Positioned(
+                                      left: 14,
+                                      bottom: 14,
+                                      right: 14,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            city.name,
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white,
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'INDIA',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.75),
+                                              letterSpacing: 1.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    // "Coming soon" badge for disabled
+                                    if (!city.enabled)
+                                      Positioned(
+                                        top: 10,
+                                        right: 10,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.5),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: const Text(
+                                            'Coming soon',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                    // Checkmark for selected
+                                    if (isSelected)
+                                      Positioned(
+                                        top: 10,
+                                        right: 10,
+                                        child: Container(
+                                          decoration: const BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          padding: const EdgeInsets.all(2),
+                                          child: const Icon(
+                                            Icons.check_circle,
+                                            color: Color(0xFFE91E63),
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
