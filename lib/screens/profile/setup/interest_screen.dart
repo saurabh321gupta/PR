@@ -63,7 +63,7 @@ class _InterestScreenState extends State<InterestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SetupProgressBar(currentStep: 3, totalSteps: 5),
+            const SetupProgressBar(currentStep: 3, totalSteps: 6),
 
             Expanded(
               child: Padding(
@@ -73,12 +73,12 @@ class _InterestScreenState extends State<InterestScreen> {
                   children: [
                     const SizedBox(height: 28),
                     const Text(
-                      'Who would you\nlike to date?',
+                      'So, who catches\nyour eye?',
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black87, height: 1.25),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'You can always change this later in your settings.',
+                      'No pressure — you can always update this later.',
                       style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.5),
                     ),
                     const SizedBox(height: 28),

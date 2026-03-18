@@ -98,7 +98,7 @@ class _NameBirthdayScreenState extends State<NameBirthdayScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              "Make sure this is your correct age as you can't change this later.",
+              "This is locked in forever — no Benjamin Button allowed.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
             ),
@@ -157,7 +157,7 @@ class _NameBirthdayScreenState extends State<NameBirthdayScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SetupProgressBar(currentStep: 1, totalSteps: 5),
+            const SetupProgressBar(currentStep: 1, totalSteps: 6),
 
             Expanded(
               child: Padding(
@@ -167,7 +167,7 @@ class _NameBirthdayScreenState extends State<NameBirthdayScreen> {
                   children: [
                     const SizedBox(height: 28),
                     const Text(
-                      'Oh hey! Let\'s start\nwith an intro.',
+                      'First things first —\nwho are we talking to?',
                       style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black87, height: 1.25),
                     ),
                     const SizedBox(height: 32),
@@ -227,7 +227,7 @@ class _NameBirthdayScreenState extends State<NameBirthdayScreen> {
                         child: Text(_birthdayError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                       ),
                     const SizedBox(height: 16),
-                    Text("It's never too early to count down \u{1F382}", style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+                    Text("We won't sing, but we do like knowing when to 🎂", style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
                     const Spacer(),
                   ],
                 ),

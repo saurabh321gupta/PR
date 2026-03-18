@@ -15,7 +15,8 @@ class BioScreen extends StatefulWidget {
   final String gender;
   final bool showGender;
   final String interestedIn;
-  final File? photo;
+  final List<File> photos;
+  final List<String> interests;
 
   const BioScreen({
     super.key,
@@ -27,7 +28,8 @@ class BioScreen extends StatefulWidget {
     required this.gender,
     required this.showGender,
     required this.interestedIn,
-    this.photo,
+    required this.photos,
+    required this.interests,
   });
 
   @override
@@ -60,12 +62,12 @@ class _BioScreenState extends State<BioScreen> {
       _bioError = null;
     });
 
-    String? photoUrl;
-    if (widget.photo != null) {
+    List<String> photoUrls = [];
+    if (widget.photos.isNotEmpty) {
       try {
-        photoUrl = await _storageService.uploadProfilePhoto(
+        photoUrls = await _storageService.uploadProfilePhotos(
           widget.userId,
-          widget.photo!,
+          widget.photos,
         );
       } catch (e) {
         if (!mounted) return;
@@ -84,7 +86,8 @@ class _BioScreenState extends State<BioScreen> {
       gender: widget.gender,
       interestedIn: widget.interestedIn,
       bio: bio,
-      photos: photoUrl != null ? [photoUrl] : [],
+      photos: photoUrls,
+      interests: widget.interests,
       city: widget.city,
       companyDomain: _companyDomain,
       workVerified: true,
@@ -120,7 +123,7 @@ class _BioScreenState extends State<BioScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SetupProgressBar(currentStep: 5, totalSteps: 5),
+                const SetupProgressBar(currentStep: 6, totalSteps: 6),
 
                 Expanded(
                   child: Padding(
@@ -130,12 +133,12 @@ class _BioScreenState extends State<BioScreen> {
                       children: [
                         const SizedBox(height: 28),
                         const Text(
-                          'And finally, a few\nwords about you',
+                          'Almost there —\nsell yourself a little ✍️',
                           style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black87, height: 1.25),
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Give people a reason to swipe right \u{2728}',
+                          'A good bio is the difference between "meh" and "tell me more".',
                           style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.5),
                         ),
                         const SizedBox(height: 28),
@@ -147,7 +150,7 @@ class _BioScreenState extends State<BioScreen> {
                           textCapitalization: TextCapitalization.sentences,
                           style: const TextStyle(fontSize: 16, height: 1.5),
                           decoration: InputDecoration(
-                            hintText: 'Coffee addict, trail runner, and secretly a great cook...',
+                            hintText: 'Monday meetings survivor. Weekend hiking enthusiast. Makes a mean pasta.',
                             hintStyle: TextStyle(color: Colors.grey.shade400),
                             filled: true,
                             fillColor: Colors.grey.shade50,
@@ -200,7 +203,7 @@ class _BioScreenState extends State<BioScreen> {
                     children: [
                       CircularProgressIndicator(color: Color(0xFFE91E63)),
                       SizedBox(height: 16),
-                      Text('Creating your profile...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black54)),
+                      Text('Uploading your photos & creating your profile...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black54)),
                     ],
                   ),
                 ),

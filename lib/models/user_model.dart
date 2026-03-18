@@ -6,6 +6,7 @@ class UserModel {
   final String interestedIn; // 'Men' | 'Women' | 'Everyone'
   final String bio;
   final List<String> photos;
+  final List<String> interests;
   final String city;
 
   // Verification — stored privately, never shown publicly
@@ -28,6 +29,7 @@ class UserModel {
     this.interestedIn = 'Everyone',
     required this.bio,
     required this.photos,
+    this.interests = const [],
     this.city = '',
     required this.companyDomain,
     required this.workVerified,
@@ -47,6 +49,7 @@ class UserModel {
       'interestedIn': interestedIn,
       'bio': bio,
       'photos': photos,
+      'interests': interests,
       'city': city,
       'companyDomain': companyDomain,
       'workVerified': workVerified,
@@ -67,6 +70,7 @@ class UserModel {
       interestedIn: map['interestedIn'] ?? 'Everyone',
       bio: map['bio'] ?? '',
       photos: List<String>.from(map['photos'] ?? []),
+      interests: List<String>.from(map['interests'] ?? []),
       city: map['city'] ?? '',
       companyDomain: map['companyDomain'] ?? '',
       workVerified: map['workVerified'] ?? false,
