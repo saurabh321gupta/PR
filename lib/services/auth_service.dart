@@ -11,7 +11,7 @@ class AuthService {
 
   // ─── Email existence check ─────────────────────────────────────────────────
 
-  /// Returns true if this email already has a PR account.
+  /// Returns true if this email already has a Grred account.
   Future<bool> emailExists(String email) async {
     final doc = await _db.collection('user_secrets').doc(email).get();
     return doc.exists;

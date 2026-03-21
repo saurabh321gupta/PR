@@ -4,7 +4,7 @@
     <!-- Photo library access (Android < 13) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <application
-        android:label="pr"
+        android:label="Grred"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

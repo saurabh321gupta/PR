@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/user_model.dart';
+import '../theme/app_theme.dart';
 
 class ProfileCard extends StatelessWidget {
   final UserModel user;
   final Offset dragOffset;
-  final bool isTop; // only the top card is draggable
+  final bool isTop;
   final VoidCallback? onMoreTap;
 
   const ProfileCard({
@@ -18,22 +20,6 @@ class ProfileCard extends StatelessWidget {
   // Like/Nope opacity based on horizontal drag
   double get _likeOpacity => (dragOffset.dx / 100).clamp(0.0, 1.0);
   double get _nopeOpacity => (-dragOffset.dx / 100).clamp(0.0, 1.0);
-
-  // Avatar background colour based on name initial
-  Color _avatarColor() {
-    final colors = [
-      Colors.pink.shade300,
-      Colors.purple.shade300,
-      Colors.indigo.shade300,
-      Colors.teal.shade400,
-      Colors.orange.shade400,
-      Colors.deepPurple.shade300,
-    ];
-    final index = user.firstName.isNotEmpty
-        ? user.firstName.codeUnitAt(0) % colors.length
-        : 0;
-    return colors[index];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,149 +35,61 @@ class ProfileCard extends StatelessWidget {
           height: screenSize.height * 0.68,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 6),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: AppShadows.card,
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             child: Stack(
+              fit: StackFit.expand,
               children: [
-                // ── Avatar / photo area ──────────────────────────────────
-                Column(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: user.photos.isNotEmpty
-                          ? Image.network(
-                              user.photos[0],
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (_, child, progress) {
-                                if (progress == null) return child;
-                                return Container(
-                                  color: _avatarColor(),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (_, __, ___) => _avatarPlaceholder(),
-                            )
-                          : _avatarPlaceholder(),
+                // -- Full-bleed photo / fallback --------------------------
+                _buildPhoto(),
+
+                // -- Bottom scrim gradient --------------------------------
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: screenSize.height * 0.68 * 0.40,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.scrimBottom,
                     ),
-
-                    // ── Profile info ───────────────────────────────────────
-                    Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  '${user.firstName}, ${user.age}',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // Verified badge
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: Colors.green.shade300),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.verified,
-                                          size: 13,
-                                          color: Colors.green.shade600),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'Verified',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.green.shade700,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 6),
-
-                            // Industry / role (optional display)
-                            if (user.showIndustry &&
-                                user.industryCategory.isNotEmpty)
-                              Text(
-                                user.industryCategory,
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey.shade600),
-                              ),
-
-                            const SizedBox(height: 10),
-
-                            // Bio
-                            Expanded(
-                              child: Text(
-                                user.bio,
-                                style: const TextStyle(
-                                    fontSize: 14, height: 1.5),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
 
-                // ── LIKE overlay ────────────────────────────────────────
+                // -- Profile info overlay ---------------------------------
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 24,
+                  child: _buildProfileInfo(),
+                ),
+
+                // -- LIKE stamp -------------------------------------------
                 if (isTop)
                   Positioned(
                     top: 40,
                     left: 24,
                     child: Opacity(
                       opacity: _likeOpacity,
-                      child: _stampLabel('LIKE', Colors.green),
+                      child: _stampLabel('LIKE', AppColors.tertiary),
                     ),
                   ),
 
-                // ── NOPE overlay ────────────────────────────────────────
+                // -- NOPE stamp -------------------------------------------
                 if (isTop)
                   Positioned(
                     top: 40,
                     right: 24,
                     child: Opacity(
                       opacity: _nopeOpacity,
-                      child: _stampLabel('NOPE', Colors.red),
+                      child: _stampLabel('NOPE', AppColors.error),
                     ),
                   ),
 
-                // ── More (⋮) button ──────────────────────────────────────
+                // -- More button ------------------------------------------
                 if (isTop && onMoreTap != null)
                   Positioned(
                     top: 12,
@@ -201,11 +99,14 @@ class ProfileCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
+                          color: AppColors.onSurface.withOpacity(0.35),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.more_vert,
-                            color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.more_vert,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -217,40 +118,151 @@ class ProfileCard extends StatelessWidget {
     );
   }
 
+  // ── Full-bleed photo or avatar fallback ──────────────────────────────────
+
+  Widget _buildPhoto() {
+    if (user.photos.isNotEmpty) {
+      return Image.network(
+        user.photos[0],
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: AppColors.surfaceContainerHigh,
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.onSurfaceVariant,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => _avatarPlaceholder(),
+      );
+    }
+    return _avatarPlaceholder();
+  }
+
+  // ── Avatar fallback: surfaceContainerHigh bg + onSurfaceVariant initial ──
+
   Widget _avatarPlaceholder() {
     return Container(
       width: double.infinity,
-      color: _avatarColor(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.white.withOpacity(0.3),
-            child: Text(
-              user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : '?',
-              style: const TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+      height: double.infinity,
+      color: AppColors.surfaceContainerHigh,
+      child: Center(
+        child: Text(
+          user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : '?',
+          style: GoogleFonts.manrope(
+            fontSize: 72,
+            fontWeight: FontWeight.w800,
+            color: AppColors.onSurfaceVariant,
           ),
-        ],
+        ),
       ),
     );
   }
+
+  // ── Profile info overlay (over scrim) ────────────────────────────────────
+
+  Widget _buildProfileInfo() {
+    // Build the work string: "Role, City" or whichever parts are available
+    final workParts = <String>[
+      if (user.showRole && user.role.isNotEmpty) user.role,
+      if (user.city.isNotEmpty) user.city,
+    ];
+    final workText = workParts.join(', ');
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // -- Name + age + verified badge --------------------------------
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                '${user.firstName}, ${user.age}',
+                style: GoogleFonts.manrope(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: Colors.white,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.verified,
+              size: 22,
+              color: AppColors.secondaryFixedDim,
+            ),
+          ],
+        ),
+
+        // -- Work info row ----------------------------------------------
+        if (workText.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.work_outline,
+                size: 14,
+                color: Colors.white.withOpacity(0.90),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  workText,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.90),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        // -- Bio preview ------------------------------------------------
+        if (user.bio.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            user.bio,
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              height: 1.6,
+              color: Colors.white.withOpacity(0.85),
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── LIKE / NOPE stamp labels ─────────────────────────────────────────────
 
   Widget _stampLabel(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         border: Border.all(color: color, width: 3),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: GoogleFonts.manrope(
           color: color,
           fontSize: 28,
           fontWeight: FontWeight.w900,

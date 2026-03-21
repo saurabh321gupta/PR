@@ -59,17 +59,17 @@ class _LandingScreenState extends State<LandingScreen> {
 
                 // App Logo & Branding
                 const Text(
-                  'PR',
+                  'Grred',
                   style: TextStyle(
-                    fontSize: 80,
+                    fontSize: 64,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
-                    letterSpacing: 6,
+                    letterSpacing: 3,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Professional Relationships',
+                  'Real People. Real Connections.',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,

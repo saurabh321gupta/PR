@@ -146,7 +146,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                     // Subtitle with privacy assurance
                     Text(
-                      'We only use work emails to make sure everyone on PR is real.',
+                      'We only use work emails to make sure everyone on Grred is real.',
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.grey.shade600,
