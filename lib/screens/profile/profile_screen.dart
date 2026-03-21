@@ -643,6 +643,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPageChanged: (i) =>
                           setState(() => _currentPhotoIndex = i),
                       itemBuilder: (_, i) => GestureDetector(
+                        onTap: () => _openPhotoViewer(i),
                         onLongPress: () => _showPhotoOptions(i),
                         child: Image.network(
                           photos[i],
@@ -938,6 +939,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _openPhotoViewer(int initialIndex) {
+    final photos = _userModel!.photos;
+    if (photos.isEmpty) return;
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black87,
+        pageBuilder: (_, __, ___) => _FullScreenPhotoViewer(
+          photos: photos,
+          initialIndex: initialIndex,
+        ),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   Widget _photoPlaceholder(UserModel user) {
     return Container(
       color: AppColors.surfaceContainerHigh,
@@ -979,35 +1000,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (user.bio.isNotEmpty)
+              Text(
+                user.bio,
+                style: AppTextStyles.bodyLg.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  height: 1.7,
+                ),
+              )
+            else
+              Text(
+                'Tap to write something about yourself...',
+                style: AppTextStyles.bodyLg.copyWith(
+                  color: AppColors.outlineVariant,
+                  height: 1.7,
+                ),
+              ),
+            const SizedBox(height: 12),
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Icon(Icons.article_outlined,
-                    color: AppColors.primary, size: 22),
-                const SizedBox(width: 10),
+                Icon(Icons.edit_outlined,
+                    size: 16, color: AppColors.outlineVariant),
+                const SizedBox(width: 4),
                 Text(
-                  'The Executive Summary',
-                  style: GoogleFonts.manrope(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                  'Edit',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.outlineVariant,
                   ),
                 ),
-                const Spacer(),
-                Icon(Icons.edit_outlined,
-                    size: 18, color: AppColors.outlineVariant),
               ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              user.bio.isNotEmpty
-                  ? user.bio
-                  : 'Tap to write something about yourself...',
-              style: AppTextStyles.bodyLg.copyWith(
-                color: user.bio.isNotEmpty
-                    ? AppColors.onSurfaceVariant
-                    : AppColors.outlineVariant,
-                height: 1.7,
-              ),
             ),
           ],
         ),
@@ -1102,59 +1124,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildInterestsSection() {
     final interests = _userModel!.interests;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: AppShadows.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.interests_rounded,
-                  color: AppColors.primary, size: 22),
-              const SizedBox(width: 10),
-              Text(
-                'What I\'m Into',
-                style: GoogleFonts.manrope(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: interests.map((interest) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  border: Border.all(
-                    color: AppColors.outlineVariant.withAlpha(128),
-                  ),
-                ),
-                child: Text(
-                  interest,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: _showInterestsEditor,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          boxShadow: AppShadows.card,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.interests_rounded,
+                    color: AppColors.primary, size: 22),
+                const SizedBox(width: 10),
+                Text(
+                  'What I\'m Into',
+                  style: GoogleFonts.manrope(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.onSurface,
                   ),
                 ),
-              );
-            }).toList(),
-          ),
-        ],
+                const Spacer(),
+                Icon(Icons.edit_outlined,
+                    size: 18, color: AppColors.outlineVariant),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: interests.map((interest) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withAlpha(128),
+                    ),
+                  ),
+                  child: Text(
+                    interest,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1335,6 +1363,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // Interests editor
+  // ---------------------------------------------------------------------------
+
+  void _showInterestsEditor() {
+    final currentInterests = Set<String>.from(_userModel!.interests);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (ctx) => _InterestsEditorSheet(
+        selected: currentInterests,
+        onSave: (updated) async {
+          Navigator.pop(ctx);
+          setState(() => _isSaving = true);
+          final uid = _auth.currentUser!.uid;
+          final list = updated.toList();
+          await _firestore
+              .collection('users')
+              .doc(uid)
+              .update({'interests': list});
+          setState(() {
+            _userModel = _userModel!._copyWith(interests: list);
+            _isSaving = false;
+          });
+          _showSnack('Interests updated');
+        },
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Discovery sheet
   // ---------------------------------------------------------------------------
 
@@ -1446,6 +1510,361 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: AppColors.onSurfaceVariant,
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Full-screen photo viewer with swipe
+// =============================================================================
+
+class _FullScreenPhotoViewer extends StatefulWidget {
+  final List<String> photos;
+  final int initialIndex;
+
+  const _FullScreenPhotoViewer({
+    required this.photos,
+    required this.initialIndex,
+  });
+
+  @override
+  State<_FullScreenPhotoViewer> createState() => _FullScreenPhotoViewerState();
+}
+
+class _FullScreenPhotoViewerState extends State<_FullScreenPhotoViewer> {
+  late final PageController _controller;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Swipeable photos
+          PageView.builder(
+            controller: _controller,
+            itemCount: widget.photos.length,
+            onPageChanged: (i) => setState(() => _currentIndex = i),
+            itemBuilder: (_, i) => InteractiveViewer(
+              minScale: 1.0,
+              maxScale: 3.0,
+              child: Center(
+                child: Image.network(
+                  widget.photos[i],
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
+          // Close button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(128),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 22),
+              ),
+            ),
+          ),
+
+          // Photo counter
+          if (widget.photos.length > 1)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 24,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(widget.photos.length, (i) {
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: i == _currentIndex ? 24 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      color: i == _currentIndex
+                          ? Colors.white
+                          : Colors.white.withAlpha(102),
+                    ),
+                  );
+                }),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Interests editor sheet (reuses the same interest list from setup)
+// =============================================================================
+
+const List<Map<String, String>> _allInterests = [
+  {'label': 'Foodie', 'emoji': '🍕'},
+  {'label': 'Coffee', 'emoji': '☕'},
+  {'label': 'Wine', 'emoji': '🍷'},
+  {'label': 'Cooking', 'emoji': '👨‍🍳'},
+  {'label': 'Baking', 'emoji': '🧁'},
+  {'label': 'Vegetarian', 'emoji': '🥗'},
+  {'label': 'Brunch', 'emoji': '🥞'},
+  {'label': 'Craft beer', 'emoji': '🍺'},
+  {'label': 'Gym', 'emoji': '🏋️'},
+  {'label': 'Running', 'emoji': '🏃'},
+  {'label': 'Yoga', 'emoji': '🧘'},
+  {'label': 'Hiking', 'emoji': '🥾'},
+  {'label': 'Cycling', 'emoji': '🚴'},
+  {'label': 'Swimming', 'emoji': '🏊'},
+  {'label': 'Camping', 'emoji': '⛺'},
+  {'label': 'Cricket', 'emoji': '🏏'},
+  {'label': 'Live music', 'emoji': '🎵'},
+  {'label': 'Concerts', 'emoji': '🎤'},
+  {'label': 'Dancing', 'emoji': '💃'},
+  {'label': 'Art', 'emoji': '🎨'},
+  {'label': 'Photography', 'emoji': '📸'},
+  {'label': 'Writing', 'emoji': '✍️'},
+  {'label': 'Singing', 'emoji': '🎙️'},
+  {'label': 'Bollywood', 'emoji': '🎬'},
+  {'label': 'Netflix', 'emoji': '📺'},
+  {'label': 'Anime', 'emoji': '🐉'},
+  {'label': 'Gaming', 'emoji': '🎮'},
+  {'label': 'Reading', 'emoji': '📚'},
+  {'label': 'Podcasts', 'emoji': '🎧'},
+  {'label': 'Standup comedy', 'emoji': '😂'},
+  {'label': 'Horror', 'emoji': '👻'},
+  {'label': 'Memes', 'emoji': '🤣'},
+  {'label': 'Travel', 'emoji': '✈️'},
+  {'label': 'Dogs', 'emoji': '🐕'},
+  {'label': 'Cats', 'emoji': '🐈'},
+  {'label': 'Gardening', 'emoji': '🌱'},
+  {'label': 'Astrology', 'emoji': '♈'},
+  {'label': 'Spirituality', 'emoji': '🧿'},
+  {'label': 'Volunteering', 'emoji': '🤝'},
+  {'label': 'Road trips', 'emoji': '🚗'},
+  {'label': 'Startups', 'emoji': '🚀'},
+  {'label': 'Investing', 'emoji': '📈'},
+  {'label': 'Tech', 'emoji': '💻'},
+  {'label': 'Design', 'emoji': '🎯'},
+  {'label': 'Side projects', 'emoji': '⚡'},
+  {'label': 'AI', 'emoji': '🤖'},
+  {'label': 'Board games', 'emoji': '🎲'},
+  {'label': 'Parties', 'emoji': '🎉'},
+  {'label': 'Karaoke', 'emoji': '🎤'},
+  {'label': 'Deep talks', 'emoji': '💭'},
+  {'label': 'Sarcasm', 'emoji': '😏'},
+  {'label': 'Night owl', 'emoji': '🦉'},
+  {'label': 'Early bird', 'emoji': '🌅'},
+];
+
+class _InterestsEditorSheet extends StatefulWidget {
+  final Set<String> selected;
+  final ValueChanged<Set<String>> onSave;
+
+  const _InterestsEditorSheet({
+    required this.selected,
+    required this.onSave,
+  });
+
+  @override
+  State<_InterestsEditorSheet> createState() => _InterestsEditorSheetState();
+}
+
+class _InterestsEditorSheetState extends State<_InterestsEditorSheet> {
+  late final Set<String> _selected;
+  static const int _min = 3;
+  static const int _max = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = Set<String>.from(widget.selected);
+  }
+
+  void _toggle(String label) {
+    setState(() {
+      if (_selected.contains(label)) {
+        _selected.remove(label);
+      } else if (_selected.length < _max) {
+        _selected.add(label);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.5,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollController) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Text('Edit Interests', style: AppTextStyles.headlineSm),
+                const Spacer(),
+                Text(
+                  '${_selected.length}/$_max',
+                  style: AppTextStyles.labelLg.copyWith(
+                    color: _selected.length >= _min
+                        ? AppColors.primary
+                        : AppColors.outline,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Pick $_min–$_max things you\'re into',
+                style: AppTextStyles.bodySm,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 10,
+                  children: _allInterests.map((interest) {
+                    final label = interest['label']!;
+                    final emoji = interest['emoji']!;
+                    final isSelected = _selected.contains(label);
+                    final isMaxed = _selected.length >= _max && !isSelected;
+
+                    return GestureDetector(
+                      onTap: isMaxed ? null : () => _toggle(label),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary.withAlpha(26)
+                              : isMaxed
+                                  ? AppColors.surfaceContainerHigh
+                                  : AppColors.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : isMaxed
+                                    ? AppColors.outlineVariant.withAlpha(64)
+                                    : AppColors.outlineVariant.withAlpha(128),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(emoji,
+                                style: const TextStyle(fontSize: 16)),
+                            const SizedBox(width: 6),
+                            Text(
+                              label,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : isMaxed
+                                        ? AppColors.outline
+                                        : AppColors.onSurface,
+                              ),
+                            ),
+                            if (isSelected) ...[
+                              const SizedBox(width: 4),
+                              const Icon(Icons.check,
+                                  size: 16, color: AppColors.primary),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _selected.length >= _min
+                    ? () => widget.onSave(_selected)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
+                  disabledBackgroundColor: AppColors.surfaceContainerHigh,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                ),
+                child: Text(
+                  _selected.length < _min
+                      ? 'Pick ${_min - _selected.length} more'
+                      : 'Save Interests',
+                  style: AppTextStyles.labelLg.copyWith(
+                    color: _selected.length >= _min
+                        ? AppColors.onPrimary
+                        : AppColors.outline,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
+          ],
         ),
       ),
     );

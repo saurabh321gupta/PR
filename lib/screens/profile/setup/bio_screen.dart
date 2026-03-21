@@ -55,6 +55,14 @@ class _BioScreenState extends State<BioScreen> {
       setState(() => _bioError = 'Please write something about yourself');
       return;
     }
+    if (bio.length < 10) {
+      setState(() => _bioError = 'At least 10 characters — give them something to work with!');
+      return;
+    }
+    if (bio.length > 200) {
+      setState(() => _bioError = 'Keep it under 200 characters');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -156,6 +164,8 @@ class _BioScreenState extends State<BioScreen> {
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
                             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE91E63), width: 2)),
                             errorText: _bioError,
+                            helperText: 'Min 10 characters',
+                            helperStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                           ),
                           onChanged: (_) {
                             if (_bioError != null) setState(() => _bioError = null);
