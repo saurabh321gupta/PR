@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/user_model.dart';
 import '../../../services/storage_service.dart';
-import '../../home_screen.dart';
 import 'setup_progress_bar.dart';
 
 class BioScreen extends StatefulWidget {
@@ -106,11 +105,10 @@ class _BioScreenState extends State<BioScreen> {
     setState(() => _isLoading = false);
 
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (_) => false,
-    );
+    // Pop all onboarding screens back to _AuthGate root.
+    // _AuthGate detects the signed-in user + profile and shows HomeScreen.
+    // Using pushAndRemoveUntil would destroy _AuthGate and break sign-out.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override

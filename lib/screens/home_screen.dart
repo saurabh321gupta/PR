@@ -33,15 +33,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      extendBody: true,
-      bottomNavigationBar: _GlassmorphicBottomNav(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+    // PopScope prevents the system back button from popping past _AuthGate.
+    // Without this, back from HomeScreen would pop the root route and show
+    // a black screen (or fall through to LandingScreen).
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
+        extendBody: true,
+        bottomNavigationBar: _GlassmorphicBottomNav(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+        ),
       ),
     );
   }

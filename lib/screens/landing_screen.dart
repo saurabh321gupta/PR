@@ -39,8 +39,10 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: AnimatedContainer(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: AnimatedContainer(
         duration: const Duration(seconds: 2),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
@@ -167,6 +169,7 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

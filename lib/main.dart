@@ -53,6 +53,11 @@ class _AuthGate extends StatefulWidget {
 class _AuthGateState extends State<_AuthGate> {
   late final Stream<User?> _authStream;
 
+  // Cached profile-check future — prevents FutureBuilder from restarting
+  // on every widget rebuild (e.g. when Navigator pops back to this route).
+  String? _checkedUid;
+  Future<bool>? _profileFuture;
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +73,7 @@ class _AuthGateState extends State<_AuthGate> {
 
       if (doc.exists) return true;
 
-      // Auth exists but no profile — stale Keychain token on iOS
+      // Auth session with no profile doc — stale iOS Keychain token.
       await FirebaseAuth.instance.signOut();
       return false;
     } catch (_) {
@@ -95,12 +100,22 @@ class _AuthGateState extends State<_AuthGate> {
 
         // Not signed in → landing
         if (user == null) {
+          _checkedUid = null;
+          _profileFuture = null;
           return const LandingScreen();
         }
 
-        // Signed in → verify Firestore profile exists
+        // Only query Firestore when the UID actually changes.
+        // On subsequent rebuilds (popUntil, setState, etc.) the same
+        // already-resolved future is reused, so FutureBuilder stays in
+        // ConnectionState.done and doesn't flicker.
+        if (_checkedUid != user.uid) {
+          _checkedUid = user.uid;
+          _profileFuture = _checkProfile(user);
+        }
+
         return FutureBuilder<bool>(
-          future: _checkProfile(user),
+          future: _profileFuture,
           builder: (context, profileSnapshot) {
             if (profileSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
@@ -116,7 +131,6 @@ class _AuthGateState extends State<_AuthGate> {
               return const HomeScreen();
             }
 
-            // Profile check returned false (or signOut was triggered)
             return const LandingScreen();
           },
         );

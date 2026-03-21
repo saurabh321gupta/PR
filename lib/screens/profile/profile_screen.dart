@@ -9,7 +9,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/user_model.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
-import '../landing_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -408,12 +407,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirm != true) return;
     await _auth.signOut();
+    // No manual navigation needed — _AuthGate listens to authStateChanges()
+    // and automatically switches to LandingScreen when user becomes null.
+    // Using pushAndRemoveUntil here would destroy _AuthGate and break
+    // subsequent sign-in flows.
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LandingScreen()),
-      (_) => false,
-    );
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   // ---------------------------------------------------------------------------

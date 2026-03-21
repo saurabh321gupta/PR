@@ -91,27 +91,48 @@ class _OtpScreenState extends State<OtpScreen> {
     }
 
     // OTP valid — sign in or create account
-    final user = widget.isSignIn
-        ? await _authService.signIn(widget.email)
-        : await _authService.createAccount(widget.email);
+    try {
+      final user = widget.isSignIn
+          ? await _authService.signIn(widget.email)
+          : await _authService.createAccount(widget.email);
 
-    setState(() => _isLoading = false);
-
-    if (!mounted) return;
-
-    if (user == null) {
-      setState(() => _errorMessage = widget.isSignIn
-          ? 'Sign in failed. Try again.'
-          : 'Account creation failed. Try again.');
-      return;
-    }
-
-    if (widget.isSignIn) {
-      final hasProfile = await _authService.hasProfile(user.uid);
       if (!mounted) return;
-      if (hasProfile) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+
+      if (user == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = widget.isSignIn
+              ? 'Sign in failed. Try again.'
+              : 'Account creation failed. Try again.';
+        });
+        return;
+      }
+
+      setState(() => _isLoading = false);
+
+      if (widget.isSignIn) {
+        final hasProfile = await _authService.hasProfile(user.uid);
+        if (!mounted) return;
+        if (hasProfile) {
+          // Pop all auth screens (OTP + SignIn) back to _AuthGate root.
+          // _AuthGate's StreamBuilder already detected the sign-in and
+          // will show HomeScreen.
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        } else {
+          // Signed in but no profile — incomplete onboarding.
+          // Replace this screen with CityScreen to start onboarding.
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CityScreen(
+                userId: user.uid,
+                workEmail: widget.email,
+              ),
+            ),
+          );
+        }
       } else {
+        // New account created — start onboarding.
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -122,16 +143,12 @@ class _OtpScreenState extends State<OtpScreen> {
           ),
         );
       }
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CityScreen(
-            userId: user.uid,
-            workEmail: widget.email,
-          ),
-        ),
-      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Something went wrong. Please try again.';
+      });
     }
   }
 

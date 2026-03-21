@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/user_model.dart';
 import '../../services/storage_service.dart';
-import '../home_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   final String userId;
@@ -156,11 +155,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     setState(() => _isLoading = false);
 
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (_) => false,
-    );
+    // Pop all onboarding screens back to _AuthGate root.
+    // _AuthGate detects the signed-in user + profile and shows HomeScreen.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
