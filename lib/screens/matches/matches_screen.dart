@@ -17,18 +17,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
   final _chatService = ChatService();
   final _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  late Future<List<MatchWithUser>> _matchesFuture;
+  late final Stream<List<MatchWithUser>> _matchesStream;
 
   @override
   void initState() {
     super.initState();
-    _matchesFuture = _chatService.getMatches(_currentUserId);
-  }
-
-  void _refresh() {
-    setState(() {
-      _matchesFuture = _chatService.getMatches(_currentUserId);
-    });
+    _matchesStream = _chatService.matchesStream(_currentUserId);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -55,6 +49,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
   }
 
   void _navigateToChat(MatchWithUser match) async {
+    // Mark as read when opening chat
+    _chatService.markAsRead(
+      matchId: match.matchId,
+      userId: _currentUserId,
+    );
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -64,7 +63,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
         ),
       ),
     );
-    _refresh();
+    // Mark as read again on return (in case new messages came while chatting)
+    _chatService.markAsRead(
+      matchId: match.matchId,
+      userId: _currentUserId,
+    );
   }
 
   // ── Build ────────────────────────────────────────────────────────────────
@@ -73,8 +76,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: FutureBuilder<List<MatchWithUser>>(
-        future: _matchesFuture,
+      body: StreamBuilder<List<MatchWithUser>>(
+        stream: _matchesStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildLoading();
@@ -94,12 +97,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
           return Stack(
             children: [
-              // ── Scrollable content ──
-              RefreshIndicator(
-                color: AppColors.primary,
-                backgroundColor: AppColors.surfaceContainerLowest,
-                onRefresh: () async => _refresh(),
-                child: ListView(
+              // ── Scrollable content (real-time via stream) ──
+              ListView(
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top + 60,
                     bottom: 40,
@@ -137,7 +136,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       ),
                     ],
                   ],
-                ),
               ),
 
               // ── Glassmorphic header ──
@@ -478,10 +476,7 @@ class _ConversationCard extends StatelessWidget {
     final user = match.otherUser;
     final hasPhoto = user.photos.isNotEmpty;
 
-    // Determine if this message is "unread" — simple heuristic:
-    // if lastMessage exists and is recent (< 10 min), show unread dot
-    final isUnread = match.lastMessageAt != null &&
-        DateTime.now().difference(match.lastMessageAt!).inMinutes < 10;
+    final isUnread = match.isUnread;
 
     return GestureDetector(
       onTap: onTap,

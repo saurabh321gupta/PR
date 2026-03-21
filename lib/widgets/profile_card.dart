@@ -179,30 +179,17 @@ class ProfileCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // -- Name + age + verified badge --------------------------------
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Text(
-                '${user.firstName}, ${user.age}',
-                style: GoogleFonts.manrope(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                  color: Colors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.verified,
-              size: 22,
-              color: AppColors.secondaryFixedDim,
-            ),
-          ],
+        // -- Name + age --------------------------------
+        Text(
+          '${user.firstName}, ${user.age}',
+          style: GoogleFonts.manrope(
+            fontSize: 36,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: Colors.white,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
 
         // -- Work info row ----------------------------------------------

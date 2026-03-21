@@ -37,10 +37,12 @@ class Grred extends StatelessWidget {
   }
 }
 
-/// Checks Firebase Auth state AND verifies Firestore profile exists.
+/// Listens to Firebase Auth state changes AND verifies Firestore profile.
 /// - Signed in + has profile → HomeScreen
 /// - Signed in but no profile (stale iOS Keychain) → signs out → LandingScreen
 /// - Not signed in → LandingScreen
+///
+/// Re-evaluates every time auth state changes (sign-in, sign-out, etc.)
 class _AuthGate extends StatefulWidget {
   const _AuthGate();
 
@@ -49,56 +51,76 @@ class _AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<_AuthGate> {
-  bool _checking = true;
-  bool _hasProfile = false;
+  late final Stream<User?> _authStream;
 
   @override
   void initState() {
     super.initState();
-    _checkAuthState();
+    _authStream = FirebaseAuth.instance.authStateChanges();
   }
 
-  Future<void> _checkAuthState() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      if (mounted) setState(() => _checking = false);
-      return;
-    }
-
-    // User exists in Firebase Auth — verify they have a Firestore profile
+  Future<bool> _checkProfile(User user) async {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
 
-      if (doc.exists) {
-        if (mounted) setState(() { _hasProfile = true; _checking = false; });
-      } else {
-        // Auth session exists but no profile — stale Keychain token on iOS
-        await FirebaseAuth.instance.signOut();
-        if (mounted) setState(() => _checking = false);
-      }
+      if (doc.exists) return true;
+
+      // Auth exists but no profile — stale Keychain token on iOS
+      await FirebaseAuth.instance.signOut();
+      return false;
     } catch (_) {
-      // Network error — let them through if auth exists, profile page handles it
-      if (mounted) setState(() { _hasProfile = true; _checking = false; });
+      // Network error — let them through, profile page handles it
+      return true;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_checking) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.pink),
-        ),
-      );
-    }
+    return StreamBuilder<User?>(
+      stream: _authStream,
+      builder: (context, authSnapshot) {
+        // Waiting for first auth emission
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: Colors.pink),
+            ),
+          );
+        }
 
-    if (_hasProfile) {
-      return const HomeScreen();
-    }
+        final user = authSnapshot.data;
 
-    return const LandingScreen();
+        // Not signed in → landing
+        if (user == null) {
+          return const LandingScreen();
+        }
+
+        // Signed in → verify Firestore profile exists
+        return FutureBuilder<bool>(
+          future: _checkProfile(user),
+          builder: (context, profileSnapshot) {
+            if (profileSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(color: Colors.pink),
+                ),
+              );
+            }
+
+            final hasProfile = profileSnapshot.data ?? false;
+
+            if (hasProfile) {
+              return const HomeScreen();
+            }
+
+            // Profile check returned false (or signOut was triggered)
+            return const LandingScreen();
+          },
+        );
+      },
+    );
   }
 }

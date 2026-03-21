@@ -542,30 +542,17 @@ class _SwipeScreenState extends State<SwipeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Name + age + verified badge
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          '${user.firstName}, ${user.age}',
-                          style: GoogleFonts.manrope(
-                            fontSize: 36,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            height: 1.1,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.verified_rounded,
-                        color: AppColors.secondaryFixedDim,
-                        size: 24,
-                      ),
-                    ],
+                  // Name + age
+                  Text(
+                    '${user.firstName}, ${user.age}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
 
@@ -779,7 +766,7 @@ class _SwipeScreenState extends State<SwipeScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Check back later for new verified profiles.',
+              'Check back later for new profiles.',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(
                 color: AppColors.onSurfaceVariant,

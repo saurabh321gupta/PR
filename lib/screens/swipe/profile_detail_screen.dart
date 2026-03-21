@@ -83,30 +83,30 @@ class ProfileDetailScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          // Verified badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.green.shade300),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.verified,
-                                    size: 14, color: Colors.green.shade600),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Verified Professional',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.green.shade700,
-                                    fontWeight: FontWeight.w600,
+                          // City badge (if available)
+                          if (user.city.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.pink.shade50,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.location_on_rounded,
+                                      size: 14, color: Colors.pink.shade400),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    user.city,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.pink.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
                             ),
                           ),
                         ],
