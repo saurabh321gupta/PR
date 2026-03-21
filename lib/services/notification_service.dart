@@ -65,38 +65,11 @@ class NotificationService {
   // ── Message handlers ─────────────────────────────────────────────────────
 
   static void _handleForeground(RemoteMessage message) {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    final title = message.notification?.title ?? '';
-    final body = message.notification?.body ?? '';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (title.isNotEmpty)
-              Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.white)),
-            if (body.isNotEmpty)
-              Text(body, style: const TextStyle(color: Colors.white70)),
-          ],
-        ),
-        backgroundColor: Colors.pink.shade600,
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        action: SnackBarAction(
-          label: 'View',
-          textColor: Colors.white,
-          onPressed: () => _handleTap(message),
-        ),
-      ),
-    );
+    // Foreground messages are handled silently — the unread dot on the
+    // bottom nav provides real-time awareness without blocking the UI.
+    // Previously a SnackBar was shown here, but it obscured the bottom
+    // nav bar and was disruptive.
+    debugPrint('📬 Foreground message: ${message.notification?.title}');
   }
 
   static Future<void> _handleTap(RemoteMessage message) async {

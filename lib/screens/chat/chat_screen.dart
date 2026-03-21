@@ -51,18 +51,6 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
   Future<void> _send() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isSending) return;
@@ -83,7 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
 
     setState(() => _isSending = false);
-    _scrollToBottom();
+    // No manual scroll needed — reverse ListView keeps newest at bottom
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -265,19 +253,24 @@ class _ChatScreenState extends State<ChatScreen> {
           userId: _currentUserId,
         );
 
-        _scrollToBottom();
-
+        // reverse: true renders from the bottom up, so the newest
+        // messages are always visible without manual scrollToBottom().
+        // The list is reversed visually, so we iterate in reverse order.
         return ListView.builder(
           controller: _scrollController,
+          reverse: true,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           itemCount: messages.length,
           itemBuilder: (context, index) {
-            final msg = messages[index];
+            // With reverse, index 0 = bottom = last message
+            final reversedIndex = messages.length - 1 - index;
+            final msg = messages[reversedIndex];
             final isMe = msg.senderId == _currentUserId;
 
-            // Date separator
-            final showDate = index == 0 ||
-                !_sameDay(messages[index - 1].createdAt, msg.createdAt);
+            // Date separator — show above the first message of a new day
+            final showDate = reversedIndex == 0 ||
+                !_sameDay(
+                    messages[reversedIndex - 1].createdAt, msg.createdAt);
 
             return Column(
               children: [
