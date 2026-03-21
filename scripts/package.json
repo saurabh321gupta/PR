@@ -1,0 +1,22 @@
+{
+  "name": "grred-test-scripts",
+  "description": "Testing & seed scripts for Grred dating app",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  },
+  "scripts": {
+    "create": "node create_profile.js",
+    "seed:profiles": "node seed_profiles.js",
+    "seed:matches": "node seed_matches.js",
+    "seed:messages": "node seed_messages.js",
+    "seed:all": "node seed_profiles.js && node seed_matches.js && node seed_messages.js",
+    "cleanup": "node cleanup.js",
+    "wipe": "node wipe_all.js",
+    "test": "node run.js"
+  }
+}

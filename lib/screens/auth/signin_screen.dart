@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 import 'otp_screen.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -51,45 +53,58 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
-    final otp = await _authService.sendOtp(email);
-    setState(() => _isLoading = false);
+    try {
+      final otpResult = await _authService.sendOtp(email);
+      setState(() => _isLoading = false);
 
-    if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OtpScreen(
-          email: email,
-          isSignIn: true,
-          devOtp: otp,
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpScreen(
+            email: email,
+            isSignIn: true,
+            devOtp: otpResult.devOtp,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorText = 'Failed to send verification code. Try again.';
+      });
+    }
   }
 
   void _showNoAccountDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('No account found'),
-        content: const Text(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Text('No account found', style: AppTextStyles.headlineSm),
+        content: Text(
           'No account found for this email. Please sign up first.',
+          style: AppTextStyles.bodyLg,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel',
+                style: AppTextStyles.labelLg
+                    .copyWith(color: AppColors.onSurfaceVariant)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.pop(context); // back to landing
+              Navigator.pop(context);
             },
-            child: const Text(
-              'Sign Up',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: Text('Sign Up',
+                style: AppTextStyles.labelLg
+                    .copyWith(color: AppColors.primary)),
           ),
         ],
       ),
@@ -99,18 +114,19 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Back button (Bumble style)
+            // Back button
             Padding(
               padding: const EdgeInsets.only(left: 8, top: 8),
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, size: 26),
-                color: Colors.black87,
+                icon: const Icon(Icons.arrow_back_rounded, size: 24),
+                color: AppColors.onSurface,
+                splashRadius: 22,
               ),
             ),
 
@@ -123,64 +139,56 @@ class _SignInScreenState extends State<SignInScreen> {
                     const SizedBox(height: 24),
 
                     // Heading
-                    const Text(
-                      'Welcome back!',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                      ),
-                    ),
+                    Text('Welcome back!', style: AppTextStyles.headlineLg),
                     const SizedBox(height: 12),
 
                     Text(
                       'Enter your work email to sign in.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade600,
-                        height: 1.5,
-                      ),
+                      style: AppTextStyles.bodyLg,
                     ),
 
                     const SizedBox(height: 36),
 
                     // Email label
-                    Text(
-                      'Work email',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    Text('WORK EMAIL', style: AppTextStyles.sectionHeader),
+                    const SizedBox(height: 10),
 
-                    // Email input (Bumble style)
+                    // Email input
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
-                      style: const TextStyle(fontSize: 17),
+                      style: GoogleFonts.inter(
+                        fontSize: 17,
+                        color: AppColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'you@yourcompany.com',
-                        hintStyle: TextStyle(color: Colors.grey.shade400),
+                        hintStyle: GoogleFonts.inter(
+                          fontSize: 17,
+                          color: AppColors.outline,
+                        ),
                         contentPadding:
                             const EdgeInsets.symmetric(vertical: 14),
                         enabledBorder: UnderlineInputBorder(
                           borderSide: BorderSide(
-                              color: Colors.grey.shade300, width: 1.5),
+                              color: AppColors.outlineVariant, width: 1.5),
                         ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFE91E63), width: 2),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppColors.primary, width: 2),
                         ),
-                        errorBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red, width: 1.5),
+                        errorBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppColors.error, width: 1.5),
                         ),
-                        focusedErrorBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red, width: 2),
+                        focusedErrorBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppColors.error, width: 2),
                         ),
                         errorText: _errorText,
+                        errorStyle: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.error),
                       ),
                       onChanged: (_) {
                         if (_errorText != null) {
@@ -195,16 +203,13 @@ class _SignInScreenState extends State<SignInScreen> {
                     Row(
                       children: [
                         Icon(Icons.lock_outline,
-                            size: 16, color: Colors.grey.shade500),
+                            size: 16, color: AppColors.outline),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'We\'ll send a code to your email to verify it\'s you.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                              height: 1.4,
-                            ),
+                            style: AppTextStyles.bodySm
+                                .copyWith(color: AppColors.outline),
                           ),
                         ),
                       ],
@@ -216,39 +221,51 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
             ),
 
-            // Bottom CTA — circular arrow (Bumble style)
+            // Bottom CTA — gradient circular button
             Padding(
               padding: const EdgeInsets.only(right: 28, bottom: 24),
               child: Align(
                 alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _sendCode,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE91E63),
-                      disabledBackgroundColor: Colors.pink.shade200,
-                      shape: const CircleBorder(),
-                      padding: EdgeInsets.zero,
-                      elevation: 2,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : const Icon(Icons.arrow_forward,
-                            color: Colors.white, size: 26),
-                  ),
+                child: _buildCtaButton(
+                  onPressed: _isLoading ? null : _sendCode,
+                  isLoading: _isLoading,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCtaButton({
+    required VoidCallback? onPressed,
+    required bool isLoading,
+  }) {
+    final enabled = onPressed != null;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: enabled ? AppColors.editorialGradient : null,
+          color: enabled ? null : AppColors.outlineVariant,
+          shape: BoxShape.circle,
+          boxShadow: enabled ? AppShadows.fab : null,
+        ),
+        child: Center(
+          child: isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : const Icon(Icons.arrow_forward_rounded,
+                  color: Colors.white, size: 26),
         ),
       ),
     );

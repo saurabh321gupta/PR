@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import 'notification_screen.dart';
 
 class CityScreen extends StatefulWidget {
@@ -17,7 +19,7 @@ class CityScreen extends StatefulWidget {
 
 class _CityItem {
   final String name;
-  final String? assetPath; // local asset for enabled cities
+  final String? assetPath;
   final bool enabled;
 
   const _CityItem({
@@ -60,7 +62,7 @@ class _CityScreenState extends State<CityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,8 +72,9 @@ class _CityScreenState extends State<CityScreen> {
               padding: const EdgeInsets.only(left: 8, top: 8),
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, size: 26),
-                color: Colors.black87,
+                icon: const Icon(Icons.arrow_back_rounded, size: 24),
+                color: AppColors.onSurface,
+                splashRadius: 22,
               ),
             ),
 
@@ -84,25 +87,15 @@ class _CityScreenState extends State<CityScreen> {
                     const SizedBox(height: 24),
 
                     // Heading
-                    const Text(
+                    Text(
                       'So, which city\ndo you live in?',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                        height: 1.25,
-                      ),
+                      style: AppTextStyles.headlineLg.copyWith(height: 1.25),
                     ),
                     const SizedBox(height: 12),
 
-                    // Subtitle
                     Text(
                       'We just want to know so we can show you other amazing people in the same city, right beside you.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade600,
-                        height: 1.5,
-                      ),
+                      style: AppTextStyles.bodyLg,
                     ),
 
                     const SizedBox(height: 28),
@@ -133,21 +126,25 @@ class _CityScreenState extends State<CityScreen> {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 border: isSelected
                                     ? Border.all(
-                                        color: const Color(0xFFE91E63),
+                                        color: AppColors.primary,
                                         width: 3,
                                       )
+                                    : null,
+                                boxShadow: isSelected
+                                    ? AppShadows.card
                                     : null,
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
-                                    isSelected ? 13 : 16),
+                                    isSelected ? 13 : AppRadius.md),
                                 child: Stack(
                                   fit: StackFit.expand,
                                   children: [
-                                    // City image or grey placeholder
+                                    // City image or blush placeholder
                                     if (city.enabled &&
                                         city.assetPath != null)
                                       Image.asset(
@@ -155,40 +152,37 @@ class _CityScreenState extends State<CityScreen> {
                                         fit: BoxFit.cover,
                                       )
                                     else
-                                      // Grey gradient for disabled cities
                                       Container(
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
                                             begin: Alignment.topCenter,
                                             end: Alignment.bottomCenter,
                                             colors: [
-                                              Colors.grey.shade300,
-                                              Colors.grey.shade500,
+                                              AppColors.surfaceContainerHigh,
+                                              AppColors.surfaceContainerHighest,
                                             ],
                                           ),
                                         ),
                                       ),
 
-                                    // Bottom gradient overlay for text
+                                    // Bottom scrim gradient
                                     Container(
-                                      decoration: BoxDecoration(
+                                      decoration: const BoxDecoration(
                                         gradient: LinearGradient(
                                           begin: Alignment.topCenter,
                                           end: Alignment.bottomCenter,
                                           colors: [
                                             Colors.transparent,
                                             Colors.transparent,
-                                            Colors.black
-                                                .withValues(alpha: 0.6),
-                                            Colors.black
-                                                .withValues(alpha: 0.8),
+                                            Color(0x9927171A),
+                                            Color(0xCC27171A),
                                           ],
-                                          stops: const [0.0, 0.4, 0.75, 1.0],
+                                          stops: [0.0, 0.4, 0.75, 1.0],
                                         ),
                                       ),
                                     ),
 
-                                    // City name + country label
+                                    // City name + country
                                     Positioned(
                                       left: 14,
                                       bottom: 14,
@@ -199,7 +193,7 @@ class _CityScreenState extends State<CityScreen> {
                                         children: [
                                           Text(
                                             city.name,
-                                            style: const TextStyle(
+                                            style: GoogleFonts.manrope(
                                               fontSize: 18,
                                               fontWeight: FontWeight.w700,
                                               color: Colors.white,
@@ -209,7 +203,7 @@ class _CityScreenState extends State<CityScreen> {
                                           const SizedBox(height: 2),
                                           Text(
                                             'INDIA',
-                                            style: TextStyle(
+                                            style: GoogleFonts.inter(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w500,
                                               color: Colors.white
@@ -221,7 +215,7 @@ class _CityScreenState extends State<CityScreen> {
                                       ),
                                     ),
 
-                                    // "Coming soon" badge for disabled
+                                    // "Coming soon" badge
                                     if (!city.enabled)
                                       Positioned(
                                         top: 10,
@@ -230,14 +224,15 @@ class _CityScreenState extends State<CityScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Colors.black
+                                            color: AppColors.onSurface
                                                 .withValues(alpha: 0.5),
                                             borderRadius:
-                                                BorderRadius.circular(8),
+                                                BorderRadius.circular(
+                                                    AppRadius.sm),
                                           ),
-                                          child: const Text(
+                                          child: Text(
                                             'Coming soon',
-                                            style: TextStyle(
+                                            style: GoogleFonts.inter(
                                               fontSize: 10,
                                               fontWeight: FontWeight.w600,
                                               color: Colors.white,
@@ -256,10 +251,11 @@ class _CityScreenState extends State<CityScreen> {
                                             color: Colors.white,
                                             shape: BoxShape.circle,
                                           ),
-                                          padding: const EdgeInsets.all(2),
-                                          child: const Icon(
+                                          padding:
+                                              const EdgeInsets.all(2),
+                                          child: Icon(
                                             Icons.check_circle,
-                                            color: Color(0xFFE91E63),
+                                            color: AppColors.primary,
                                             size: 24,
                                           ),
                                         ),
@@ -277,35 +273,41 @@ class _CityScreenState extends State<CityScreen> {
               ),
             ),
 
-            // Bottom CTA — circular arrow
+            // Bottom CTA — gradient circular button
             Padding(
               padding: const EdgeInsets.only(right: 28, bottom: 24),
               child: Align(
                 alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _selectedCity != null ? _proceed : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE91E63),
-                      disabledBackgroundColor: Colors.grey.shade300,
-                      shape: const CircleBorder(),
-                      padding: EdgeInsets.zero,
-                      elevation: 2,
-                    ),
-                    child: Icon(
-                      Icons.arrow_forward,
-                      color: _selectedCity != null
-                          ? Colors.white
-                          : Colors.grey.shade500,
-                      size: 26,
-                    ),
-                  ),
+                child: _buildCtaButton(
+                  onPressed: _selectedCity != null ? _proceed : null,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCtaButton({required VoidCallback? onPressed}) {
+    final enabled = onPressed != null;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: enabled ? AppColors.editorialGradient : null,
+          color: enabled ? null : AppColors.outlineVariant,
+          shape: BoxShape.circle,
+          boxShadow: enabled ? AppShadows.fab : null,
+        ),
+        child: Center(
+          child: Icon(
+            Icons.arrow_forward_rounded,
+            color: enabled ? Colors.white : AppColors.outline,
+            size: 26,
+          ),
         ),
       ),
     );

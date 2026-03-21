@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 import 'otp_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -35,9 +37,10 @@ class _SignupScreenState extends State<SignupScreen> {
     if (!email.contains('@') || !email.contains('.')) {
       return 'Enter a valid email address';
     }
-    if (!_isWorkEmail(email)) {
-      return 'Please use your work email, not a personal one';
-    }
+    // TODO: Re-enable work email check before launch
+    // if (!_isWorkEmail(email)) {
+    //   return 'Please use your work email, not a personal one';
+    // }
     return null;
   }
 
@@ -63,43 +66,57 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    final otp = await _authService.sendOtp(email);
-    setState(() => _isLoading = false);
+    try {
+      final otpResult = await _authService.sendOtp(email);
+      setState(() => _isLoading = false);
 
-    if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OtpScreen(email: email, devOtp: otp),
-      ),
-    );
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpScreen(
+            email: email,
+            devOtp: otpResult.devOtp,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorText = 'Failed to send verification code. Try again.';
+      });
+    }
   }
 
   void _showAlreadyExistsDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Account exists'),
-        content: const Text(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Text('Account exists', style: AppTextStyles.headlineSm),
+        content: Text(
           'This email already has an account. Please sign in instead.',
+          style: AppTextStyles.bodyLg,
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-            },
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style: AppTextStyles.labelLg
+                    .copyWith(color: AppColors.onSurfaceVariant)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              Navigator.pop(context); // back to landing
+              Navigator.pop(context);
             },
-            child: const Text(
-              'Sign In',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: Text('Sign In',
+                style: AppTextStyles.labelLg
+                    .copyWith(color: AppColors.primary)),
           ),
         ],
       ),
@@ -109,18 +126,19 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Back button (Bumble style — simple arrow)
+            // Back button
             Padding(
               padding: const EdgeInsets.only(left: 8, top: 8),
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, size: 26),
-                color: Colors.black87,
+                icon: const Icon(Icons.arrow_back_rounded, size: 24),
+                color: AppColors.onSurface,
+                splashRadius: 22,
               ),
             ),
 
@@ -132,67 +150,60 @@ class _SignupScreenState extends State<SignupScreen> {
                   children: [
                     const SizedBox(height: 24),
 
-                    // Big bold heading (Bumble style)
-                    const Text(
+                    // Heading
+                    Text(
                       'Let\'s start with\nyour work email.',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                        height: 1.25,
-                      ),
+                      style: AppTextStyles.headlineLg.copyWith(height: 1.25),
                     ),
                     const SizedBox(height: 12),
 
-                    // Subtitle with privacy assurance
                     Text(
                       'We only use work emails to make sure everyone on Grred is real.',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade600,
-                        height: 1.5,
-                      ),
+                      style: AppTextStyles.bodyLg,
                     ),
 
                     const SizedBox(height: 36),
 
                     // Email label
-                    Text(
-                      'Work email',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    Text('WORK EMAIL', style: AppTextStyles.sectionHeader),
+                    const SizedBox(height: 10),
 
-                    // Email input (Bumble style — underline/minimal)
+                    // Email input
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autocorrect: false,
-                      style: const TextStyle(fontSize: 17),
+                      style: GoogleFonts.inter(
+                        fontSize: 17,
+                        color: AppColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'you@yourcompany.com',
-                        hintStyle: TextStyle(color: Colors.grey.shade400),
+                        hintStyle: GoogleFonts.inter(
+                          fontSize: 17,
+                          color: AppColors.outline,
+                        ),
                         contentPadding:
                             const EdgeInsets.symmetric(vertical: 14),
                         enabledBorder: UnderlineInputBorder(
                           borderSide: BorderSide(
-                              color: Colors.grey.shade300, width: 1.5),
+                              color: AppColors.outlineVariant, width: 1.5),
                         ),
-                        focusedBorder: const UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFE91E63), width: 2),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppColors.primary, width: 2),
                         ),
-                        errorBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red, width: 1.5),
+                        errorBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppColors.error, width: 1.5),
                         ),
-                        focusedErrorBorder: const UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red, width: 2),
+                        focusedErrorBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppColors.error, width: 2),
                         ),
                         errorText: _errorText,
+                        errorStyle: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.error),
                       ),
                       onChanged: (_) {
                         if (_errorText != null) {
@@ -204,40 +215,14 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 24),
 
                     // Privacy assurances
-                    Row(
-                      children: [
-                        Icon(Icons.lock_outline,
-                            size: 16, color: Colors.grey.shade500),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Your email is never shared with anyone and won\'t be on your profile.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ],
+                    _buildAssurance(
+                      Icons.lock_outline,
+                      'Your email is never shared with anyone and won\'t be on your profile.',
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.business_outlined,
-                            size: 16, color: Colors.grey.shade500),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'You can choose later whether to see people from the same organization or not.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ],
+                    _buildAssurance(
+                      Icons.business_outlined,
+                      'You can choose later whether to see people from the same organization or not.',
                     ),
 
                     const Spacer(),
@@ -246,39 +231,66 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
 
-            // Bottom CTA — dark circular arrow button (Bumble style)
+            // Bottom CTA — gradient circular button
             Padding(
               padding: const EdgeInsets.only(right: 28, bottom: 24),
               child: Align(
                 alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _sendVerificationCode,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE91E63),
-                      disabledBackgroundColor: Colors.pink.shade200,
-                      shape: const CircleBorder(),
-                      padding: EdgeInsets.zero,
-                      elevation: 2,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          )
-                        : const Icon(Icons.arrow_forward,
-                            color: Colors.white, size: 26),
-                  ),
+                child: _buildCtaButton(
+                  onPressed: _isLoading ? null : _sendVerificationCode,
+                  isLoading: _isLoading,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssurance(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.outline),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.outline),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCtaButton({
+    required VoidCallback? onPressed,
+    required bool isLoading,
+  }) {
+    final enabled = onPressed != null;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: enabled ? AppColors.editorialGradient : null,
+          color: enabled ? null : AppColors.outlineVariant,
+          shape: BoxShape.circle,
+          boxShadow: enabled ? AppShadows.fab : null,
+        ),
+        child: Center(
+          child: isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : const Icon(Icons.arrow_forward_rounded,
+                  color: Colors.white, size: 26),
         ),
       ),
     );

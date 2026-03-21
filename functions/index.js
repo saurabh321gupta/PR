@@ -1,12 +1,18 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const crypto = require("crypto");
+const { Resend } = require("resend");
 
 initializeApp();
+
+// ── Secrets (set via `firebase functions:secrets:set`) ───────────────────────
+const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+const RESEND_FROM_EMAIL = defineSecret("RESEND_FROM_EMAIL");
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
@@ -17,6 +23,165 @@ function generateSecurePassword() {
     .map((b) => chars[b % chars.length])
     .join("");
 }
+
+function generateOtp() {
+  return Array.from(crypto.randomBytes(6))
+    .map((b) => b % 10)
+    .join("");
+}
+
+/**
+ * Checks if dev mode is enabled in Firestore app_config/settings.
+ */
+async function isDevMode() {
+  const doc = await getFirestore()
+    .collection("app_config")
+    .doc("settings")
+    .get();
+  return doc.exists && doc.data()?.devMode === true;
+}
+
+/**
+ * Sends the OTP email via Resend.
+ */
+async function sendOtpEmail(toEmail, otp, apiKey, fromEmail) {
+  const resend = new Resend(apiKey);
+
+  const { error } = await resend.emails.send({
+    from: `Grred <${fromEmail}>`,
+    to: [toEmail],
+    subject: `${otp} is your Grred verification code`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #E91E63; font-size: 28px; margin: 0;">Grred</h1>
+        </div>
+        <h2 style="color: #1a1a1a; font-size: 22px; font-weight: 700; margin-bottom: 8px;">
+          Your verification code
+        </h2>
+        <p style="color: #666; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">
+          Enter this code to verify your work email:
+        </p>
+        <div style="background: #FFF0F3; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+          <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #E91E63;">
+            ${otp}
+          </span>
+        </div>
+        <p style="color: #999; font-size: 13px; line-height: 1.5;">
+          This code expires in <strong>5 minutes</strong>.<br/>
+          If you didn't request this, you can safely ignore this email.
+        </p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+        <p style="color: #bbb; font-size: 11px; text-align: center;">
+          Grred — Where work connections become real connections.
+        </p>
+      </div>
+    `,
+  });
+
+  if (error) {
+    throw new Error(`Resend error: ${error.message}`);
+  }
+}
+
+// ── sendOtp ──────────────────────────────────────────────────────────────────
+// Called from the app when the user enters their email.
+// Generates a 6-digit OTP, stores it in Firestore, sends it via email.
+// In dev mode: also returns the OTP in the response (for on-screen display).
+exports.sendOtp = onCall(
+  { enforceAppCheck: false, secrets: [RESEND_API_KEY, RESEND_FROM_EMAIL] },
+  async (request) => {
+    const email = request.data?.email;
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      throw new HttpsError("invalid-argument", "A valid email is required.");
+    }
+
+    const db = getFirestore();
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    // Store OTP in Firestore
+    await db.collection("otp_verifications").doc(email).set({
+      otp,
+      expiresAt,
+      verified: false,
+    });
+
+    const devMode = await isDevMode();
+
+    // Send real email only when NOT in dev mode
+    if (!devMode) {
+      const apiKey = RESEND_API_KEY.value();
+      const fromEmail = RESEND_FROM_EMAIL.value();
+
+      if (!apiKey || !fromEmail) {
+        console.error("sendOtp: Resend credentials not configured!");
+        throw new HttpsError(
+          "failed-precondition",
+          "Email service not configured. Contact support."
+        );
+      }
+
+      try {
+        await sendOtpEmail(email, otp, apiKey, fromEmail);
+        console.log(`sendOtp: Email sent to ${email} via Resend`);
+      } catch (err) {
+        console.error("sendOtp: Email send failed:", err);
+        throw new HttpsError(
+          "internal",
+          "Failed to send verification email. Try again."
+        );
+      }
+    } else {
+      console.log(`sendOtp [DEV MODE]: OTP for ${email} is ${otp}`);
+    }
+
+    // Return devOtp only in dev mode
+    return {
+      success: true,
+      devMode,
+      ...(devMode ? { devOtp: otp } : {}),
+    };
+  }
+);
+
+// ── verifyOtp ────────────────────────────────────────────────────────────────
+// Verifies the OTP entered by the user. Server-side verification is more secure
+// than the current client-side Firestore read.
+exports.verifyOtp = onCall(
+  { enforceAppCheck: false },
+  async (request) => {
+    const { email, otp } = request.data || {};
+    if (!email || !otp) {
+      throw new HttpsError("invalid-argument", "Email and OTP are required.");
+    }
+
+    const db = getFirestore();
+    const doc = await db.collection("otp_verifications").doc(email).get();
+
+    if (!doc.exists) {
+      throw new HttpsError("not-found", "No OTP request found.");
+    }
+
+    const data = doc.data();
+    const storedOtp = data.otp;
+    const expiresAt = new Date(data.expiresAt);
+    const isVerified = data.verified;
+
+    if (isVerified) {
+      throw new HttpsError("already-exists", "OTP already used.");
+    }
+    if (new Date() > expiresAt) {
+      throw new HttpsError("deadline-exceeded", "OTP has expired.");
+    }
+    if (storedOtp !== otp) {
+      throw new HttpsError("permission-denied", "Incorrect OTP.");
+    }
+
+    await doc.ref.update({ verified: true });
+    return { success: true };
+  }
+);
 
 // ── createAccount ─────────────────────────────────────────────────────────────
 // Called from the app after OTP is verified (sign-up flow).

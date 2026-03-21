@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_theme.dart';
 import '../profile/setup/about_you_splash.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -26,7 +28,6 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   void initState() {
     super.initState();
-    // Gentle bell swing animation
     _bellController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -50,7 +51,6 @@ class _NotificationScreenState extends State<NotificationScreen>
           weight: 1),
     ]).animate(_bellController);
 
-    // Start bell animation after a short delay, then repeat
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) _ringBell();
     });
@@ -97,7 +97,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -125,25 +125,16 @@ class _NotificationScreenState extends State<NotificationScreen>
               padding: const EdgeInsets.symmetric(horizontal: 36),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'Imagine someone amazing\njust liked your profile...',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black87,
-                      height: 1.3,
-                    ),
+                    style: AppTextStyles.headlineMd.copyWith(height: 1.3),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     '...and you never found out. 😬\n\nTurn on notifications so you never miss a match, a message, or that perfect moment.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey.shade600,
-                      height: 1.6,
-                    ),
+                    style: AppTextStyles.bodyLg.copyWith(height: 1.6),
                   ),
                 ],
               ),
@@ -151,26 +142,28 @@ class _NotificationScreenState extends State<NotificationScreen>
 
             const Spacer(flex: 3),
 
-            // Allow notifications button
+            // Allow notifications button — gradient pill
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _allowNotifications,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE91E63),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
+              child: GestureDetector(
+                onTap: _allowNotifications,
+                child: Container(
+                  width: double.infinity,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.editorialGradient,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    boxShadow: AppShadows.fab,
                   ),
-                  child: const Text(
-                    'Yes, keep me in the loop',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  child: Center(
+                    child: Text(
+                      'Yes, keep me in the loop',
+                      style: GoogleFonts.manrope(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -183,9 +176,8 @@ class _NotificationScreenState extends State<NotificationScreen>
               onTap: _goToProfileSetup,
               child: Text(
                 'I like living dangerously — skip',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade500,
+                style: AppTextStyles.bodyMd.copyWith(
+                  color: AppColors.outline,
                   fontWeight: FontWeight.w500,
                 ),
               ),

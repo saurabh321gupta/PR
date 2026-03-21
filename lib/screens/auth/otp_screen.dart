@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 import 'city_screen.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -27,20 +29,48 @@ class _OtpScreenState extends State<OtpScreen> {
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   bool _isLoading = false;
+  bool _isResending = false;
   String _errorMessage = '';
+  String? _devOtp;
 
-  // Countdown timer (Bumble shows "This code should arrive within Xs")
   int _secondsRemaining = 30;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    _devOtp = widget.devOtp;
     _startCountdown();
-    // Auto-focus first field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
     });
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() {
+      _isResending = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final result = await _authService.sendOtp(widget.email);
+      if (!mounted) return;
+      setState(() {
+        _devOtp = result.devOtp;
+        _isResending = false;
+      });
+      _startCountdown();
+      for (final c in _controllers) {
+        c.clear();
+      }
+      _focusNodes[0].requestFocus();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isResending = false;
+        _errorMessage = 'Failed to resend code. Try again.';
+      });
+    }
   }
 
   void _startCountdown() {
@@ -114,13 +144,8 @@ class _OtpScreenState extends State<OtpScreen> {
         final hasProfile = await _authService.hasProfile(user.uid);
         if (!mounted) return;
         if (hasProfile) {
-          // Pop all auth screens (OTP + SignIn) back to _AuthGate root.
-          // _AuthGate's StreamBuilder already detected the sign-in and
-          // will show HomeScreen.
           Navigator.of(context).popUntil((route) => route.isFirst);
         } else {
-          // Signed in but no profile — incomplete onboarding.
-          // Replace this screen with CityScreen to start onboarding.
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -132,7 +157,6 @@ class _OtpScreenState extends State<OtpScreen> {
           );
         }
       } else {
-        // New account created — start onboarding.
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -147,10 +171,13 @@ class _OtpScreenState extends State<OtpScreen> {
       if (!mounted) return;
       final msg = e.toString();
       String errorText;
-      if (msg.contains('timed out') || msg.contains('timeout') || msg.contains('DEADLINE_EXCEEDED')) {
+      if (msg.contains('timed out') ||
+          msg.contains('timeout') ||
+          msg.contains('DEADLINE_EXCEEDED')) {
         errorText = 'Connection timed out. Check your internet and try again.';
       } else if (msg.contains('already-exists')) {
-        errorText = 'An account with this email already exists. Try signing in.';
+        errorText =
+            'An account with this email already exists. Try signing in.';
       } else if (msg.contains('not-found') || msg.contains('no_account')) {
         errorText = 'No account found for this email. Try signing up first.';
       } else if (msg.contains('unavailable') || msg.contains('UNAVAILABLE')) {
@@ -172,14 +199,12 @@ class _OtpScreenState extends State<OtpScreen> {
     if (value.isEmpty && index > 0) {
       _focusNodes[index - 1].requestFocus();
     }
-    // Auto-verify when all 6 digits entered
     if (_enteredOtp.length == 6) {
       _verify();
     }
   }
 
   void _handleKeyEvent(int index, KeyEvent event) {
-    // Handle backspace on empty field to go back
     if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.backspace &&
         _controllers[index].text.isEmpty &&
@@ -192,7 +217,7 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,8 +227,9 @@ class _OtpScreenState extends State<OtpScreen> {
               padding: const EdgeInsets.only(left: 8, top: 8),
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, size: 26),
-                color: Colors.black87,
+                icon: const Icon(Icons.arrow_back_rounded, size: 24),
+                color: AppColors.onSurface,
+                splashRadius: 22,
               ),
             ),
 
@@ -215,33 +241,24 @@ class _OtpScreenState extends State<OtpScreen> {
                   children: [
                     const SizedBox(height: 24),
 
-                    // Heading (Bumble style)
-                    const Text(
-                      'Verify your email',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                      ),
-                    ),
+                    // Heading
+                    Text('Verify your email',
+                        style: AppTextStyles.headlineLg),
                     const SizedBox(height: 12),
 
                     // Subtitle with email
                     RichText(
                       text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.grey.shade600,
-                          height: 1.5,
-                        ),
+                        style: AppTextStyles.bodyLg,
                         children: [
                           const TextSpan(
                               text: 'Enter the code we\'ve sent to\n'),
                           TextSpan(
                             text: widget.email,
-                            style: const TextStyle(
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: AppColors.onSurface,
                             ),
                           ),
                         ],
@@ -250,17 +267,17 @@ class _OtpScreenState extends State<OtpScreen> {
 
                     const SizedBox(height: 6),
 
-                    // "Change email" link (like Bumble's "Change number")
+                    // "Change email" link
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Text(
+                      child: Text(
                         'Change email',
-                        style: TextStyle(
+                        style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFE91E63),
+                          color: AppColors.primary,
                           decoration: TextDecoration.underline,
-                          decorationColor: Color(0xFFE91E63),
+                          decorationColor: AppColors.primary,
                         ),
                       ),
                     ),
@@ -268,17 +285,10 @@ class _OtpScreenState extends State<OtpScreen> {
                     const SizedBox(height: 36),
 
                     // "Code" label
-                    Text(
-                      'Code',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
+                    Text('CODE', style: AppTextStyles.sectionHeader),
                     const SizedBox(height: 12),
 
-                    // 6-digit OTP input (Bumble style — rounded boxes)
+                    // 6-digit OTP input
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: List.generate(6, (index) {
@@ -298,29 +308,32 @@ class _OtpScreenState extends State<OtpScreen> {
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly
                               ],
-                              style: const TextStyle(
+                              style: GoogleFonts.manrope(
                                 fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.onSurface,
                               ),
                               decoration: InputDecoration(
                                 counterText: '',
                                 filled: true,
-                                fillColor: Colors.grey.shade50,
+                                fillColor: AppColors.surfaceContainerLow,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.sm),
                                   borderSide: BorderSide(
-                                      color: Colors.grey.shade300),
+                                      color: AppColors.outlineVariant),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.sm),
                                   borderSide: BorderSide(
-                                      color: Colors.grey.shade300),
+                                      color: AppColors.outlineVariant),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                      color: Color(0xFFE91E63), width: 2),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.sm),
+                                  borderSide: BorderSide(
+                                      color: AppColors.primary, width: 2),
                                 ),
                               ),
                               onChanged: (val) =>
@@ -339,8 +352,8 @@ class _OtpScreenState extends State<OtpScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
                           _errorMessage,
-                          style: const TextStyle(
-                              color: Colors.red, fontSize: 13),
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.error),
                         ),
                       ),
 
@@ -355,73 +368,84 @@ class _OtpScreenState extends State<OtpScreen> {
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.grey.shade600,
+                                color: AppColors.outline,
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              'Loading...',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            Text('Verifying...',
+                                style: AppTextStyles.bodyMd
+                                    .copyWith(fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
 
                     const SizedBox(height: 8),
 
-                    // Countdown timer (Bumble style)
+                    // Countdown timer
                     if (_secondsRemaining > 0)
                       Text(
                         'This code should arrive within ${_secondsRemaining}s',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade500,
-                        ),
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.outline),
                       ),
                     if (_secondsRemaining == 0)
                       GestureDetector(
-                        onTap: () {
-                          // Go back to resend
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          'Didn\'t receive it? Go back and try again',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFFE91E63),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        onTap: _isResending ? null : _resendOtp,
+                        child: _isResending
+                            ? Row(
+                                children: [
+                                  SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.outline,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Sending new code...',
+                                    style: AppTextStyles.bodySm
+                                        .copyWith(color: AppColors.outline),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                'Didn\'t receive it? Resend code',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
 
                     const SizedBox(height: 24),
 
                     // Dev OTP banner
-                    if (widget.devOtp != null)
+                    if (_devOtp != null)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          border: Border.all(color: Colors.amber.shade300),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.surfaceContainerLow,
+                          border: Border.all(
+                              color: AppColors.outlineVariant, width: 0.5),
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.sm),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.bug_report,
-                                color: Colors.amber.shade700, size: 18),
+                            Icon(Icons.bug_report_outlined,
+                                color: AppColors.primary, size: 18),
                             const SizedBox(width: 10),
                             Text(
-                              'Dev OTP: ${widget.devOtp}',
-                              style: TextStyle(
+                              'Dev OTP: $_devOtp',
+                              style: GoogleFonts.manrope(
                                 fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.amber.shade900,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
                                 letterSpacing: 2,
                               ),
                             ),

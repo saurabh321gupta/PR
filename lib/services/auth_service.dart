@@ -1,9 +1,16 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+/// Result from [AuthService.sendOtp].
+class SendOtpResult {
+  final bool devMode;
+  final String? devOtp; // only set when devMode == true
+
+  const SendOtpResult({required this.devMode, this.devOtp});
+}
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -20,42 +27,47 @@ class AuthService {
     return doc.exists;
   }
 
-  // ─── OTP Flow ──────────────────────────────────────────────────────────────
+  // ─── OTP Flow (via Cloud Functions) ────────────────────────────────────────
 
-  /// Generates a 6-digit OTP, stores it in Firestore with 5-min expiry.
-  /// Returns the OTP (dev convenience — remove before production).
-  Future<String> sendOtp(String email) async {
-    final otp = _generateOtp();
-    final expiry = DateTime.now().add(const Duration(minutes: 5));
+  /// Calls the `sendOtp` Cloud Function which:
+  ///   1. Generates a 6-digit OTP server-side
+  ///   2. Stores it in Firestore with 5-min expiry
+  ///   3. Sends it via email (unless dev mode is on)
+  ///
+  /// Returns [SendOtpResult] with devOtp only if dev mode is enabled.
+  Future<SendOtpResult> sendOtp(String email) async {
+    final callable = _functions.httpsCallable(
+      'sendOtp',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
+    );
 
-    await _db.collection('otp_verifications').doc(email).set({
-      'otp': otp,
-      'expiresAt': expiry.toIso8601String(),
-      'verified': false,
-    });
+    final result = await callable.call<Map<String, dynamic>>({'email': email});
+    final data = result.data;
 
-    // TODO: Replace with actual email sending via Cloud Functions
-    debugPrint("[DEV] OTP for $email: $otp"); // remove before production
-    return otp;
+    final devMode = data['devMode'] as bool? ?? false;
+    final devOtp = data['devOtp'] as String?;
+
+    debugPrint('[AuthService] sendOtp → devMode=$devMode');
+    return SendOtpResult(devMode: devMode, devOtp: devOtp);
   }
 
-  /// Verifies the OTP entered by the user.
+  /// Calls the `verifyOtp` Cloud Function for server-side OTP verification.
+  /// Returns true if OTP is valid and not expired.
   Future<bool> verifyOtp(String email, String enteredOtp) async {
-    final doc = await _db.collection('otp_verifications').doc(email).get();
-
-    if (!doc.exists) return false;
-
-    final data = doc.data()!;
-    final storedOtp = data['otp'] as String;
-    final expiresAt = DateTime.parse(data['expiresAt'] as String);
-    final isVerified = data['verified'] as bool;
-
-    if (isVerified) return false;
-    if (DateTime.now().isAfter(expiresAt)) return false;
-    if (storedOtp != enteredOtp) return false;
-
-    await doc.reference.update({'verified': true});
-    return true;
+    try {
+      final callable = _functions.httpsCallable(
+        'verifyOtp',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 15)),
+      );
+      await callable.call<Map<String, dynamic>>({
+        'email': email,
+        'otp': enteredOtp,
+      });
+      return true;
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('[AuthService] verifyOtp error: ${e.code} ${e.message}');
+      return false;
+    }
   }
 
   // ─── Sign Up (via Cloud Function) ─────────────────────────────────────────
@@ -111,10 +123,4 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
-
-  String _generateOtp() {
-    final rand = Random.secure();
-    return List.generate(6, (_) => rand.nextInt(10)).join();
-  }
 }
