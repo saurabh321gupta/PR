@@ -145,9 +145,22 @@ class _OtpScreenState extends State<OtpScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      final msg = e.toString();
+      String errorText;
+      if (msg.contains('timed out') || msg.contains('timeout') || msg.contains('DEADLINE_EXCEEDED')) {
+        errorText = 'Connection timed out. Check your internet and try again.';
+      } else if (msg.contains('already-exists')) {
+        errorText = 'An account with this email already exists. Try signing in.';
+      } else if (msg.contains('not-found') || msg.contains('no_account')) {
+        errorText = 'No account found for this email. Try signing up first.';
+      } else if (msg.contains('unavailable') || msg.contains('UNAVAILABLE')) {
+        errorText = 'Service temporarily unavailable. Please try again.';
+      } else {
+        errorText = 'Something went wrong. Please try again.';
+      }
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Something went wrong. Please try again.';
+        _errorMessage = errorText;
       });
     }
   }

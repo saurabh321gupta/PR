@@ -1,11 +1,14 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   User? get currentUser => _auth.currentUser;
 
@@ -55,41 +58,46 @@ class AuthService {
     return true;
   }
 
-  // ─── Sign Up ───────────────────────────────────────────────────────────────
+  // ─── Sign Up (via Cloud Function) ─────────────────────────────────────────
 
-  /// Creates a Firebase Auth account and stores the internal secret in
-  /// Firestore so the user can sign back in from any device via OTP.
+  /// Calls the `createAccount` Cloud Function, which:
+  ///   1. Creates a Firebase Auth user (server-to-server, no carrier issues)
+  ///   2. Stores the secret in user_secrets
+  ///   3. Returns a custom token
+  /// Then signs in locally with the custom token.
   Future<User?> createAccount(String email) async {
-    final secret = _generateSecurePassword();
-
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: secret,
+    final callable = _functions.httpsCallable(
+      'createAccount',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
     );
 
-    // Store secret — used for re-authentication on sign-in
-    await _db.collection('user_secrets').doc(email).set({
-      'secret': secret,
-      'uid': cred.user!.uid,
-      'createdAt': DateTime.now().toIso8601String(),
-    });
+    final result = await callable.call<Map<String, dynamic>>({'email': email});
 
+    final token = result.data['token'] as String;
+
+    // signInWithCustomToken is a lightweight single round-trip
+    final cred = await _auth.signInWithCustomToken(token);
     return cred.user;
   }
 
-  // ─── Sign In ───────────────────────────────────────────────────────────────
+  // ─── Sign In (via Cloud Function) ─────────────────────────────────────────
 
-  /// Signs in an existing user after OTP verification.
-  /// Retrieves the stored secret from Firestore and uses it to authenticate.
+  /// Calls the `signInUser` Cloud Function, which:
+  ///   1. Looks up user_secrets (server-side Firestore)
+  ///   2. Verifies the Auth user exists
+  ///   3. Returns a custom token
+  /// Then signs in locally with the custom token.
   Future<User?> signIn(String email) async {
-    final doc = await _db.collection('user_secrets').doc(email).get();
-    if (!doc.exists) throw Exception('no_account');
-
-    final secret = doc.data()!['secret'] as String;
-    final cred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: secret,
+    final callable = _functions.httpsCallable(
+      'signInUser',
+      options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
     );
+
+    final result = await callable.call<Map<String, dynamic>>({'email': email});
+
+    final token = result.data['token'] as String;
+
+    final cred = await _auth.signInWithCustomToken(token);
     return cred.user;
   }
 
@@ -108,12 +116,5 @@ class AuthService {
   String _generateOtp() {
     final rand = Random.secure();
     return List.generate(6, (_) => rand.nextInt(10)).join();
-  }
-
-  String _generateSecurePassword() {
-    const chars =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#\$%^&*';
-    final rand = Random.secure();
-    return List.generate(32, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 }

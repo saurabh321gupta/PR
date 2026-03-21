@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -27,7 +28,10 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollController = ScrollController();
   final _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-  bool _isSending = false;
+  /// Messages — subscribed once in initState, feeds a local list.
+  List<ChatMessage> _messages = [];
+  bool _streamReady = false;
+  StreamSubscription<List<ChatMessage>>? _messagesSub;
 
   @override
   void initState() {
@@ -37,10 +41,26 @@ class _ChatScreenState extends State<ChatScreen> {
       matchId: widget.matchId,
       userId: _currentUserId,
     );
+
+    // Subscribe once — update local state and mark-as-read here,
+    // NOT inside a StreamBuilder's builder (which is a side-effect anti-pattern).
+    _messagesSub = _chatService.messagesStream(widget.matchId).listen((messages) {
+      if (!mounted) return;
+      setState(() {
+        _messages = messages;
+        _streamReady = true;
+      });
+      // Mark as read whenever new messages arrive
+      _chatService.markAsRead(
+        matchId: widget.matchId,
+        userId: _currentUserId,
+      );
+    });
   }
 
   @override
   void dispose() {
+    _messagesSub?.cancel();
     // Mark as read on close too (catches messages that came while viewing)
     _chatService.markAsRead(
       matchId: widget.matchId,
@@ -53,9 +73,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _send() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _isSending) return;
+    if (text.isEmpty) return;
 
-    setState(() => _isSending = true);
     _messageController.clear();
 
     await _chatService.sendMessage(
@@ -69,9 +88,8 @@ class _ChatScreenState extends State<ChatScreen> {
       matchId: widget.matchId,
       userId: _currentUserId,
     );
-
-    setState(() => _isSending = false);
-    // No manual scroll needed — reverse ListView keeps newest at bottom
+    // No setState needed — the stream listener handles the new message.
+    // No manual scroll needed — reverse ListView keeps newest at bottom.
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -231,54 +249,41 @@ class _ChatScreenState extends State<ChatScreen> {
   // ── Message List ───────────────────────────────────────────────────────────
 
   Widget _buildMessageList() {
-    return StreamBuilder<List<ChatMessage>>(
-      stream: _chatService.messagesStream(widget.matchId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
-              strokeWidth: 2,
-            ),
-          );
-        }
+    if (!_streamReady) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+          strokeWidth: 2,
+        ),
+      );
+    }
 
-        final messages = snapshot.data ?? [];
+    if (_messages.isEmpty) return _buildEmptyChat();
 
-        if (messages.isEmpty) return _buildEmptyChat();
+    // reverse: true renders from the bottom up, so the newest
+    // messages are always visible without manual scrollToBottom().
+    // The list is reversed visually, so we iterate in reverse order.
+    return ListView.builder(
+      controller: _scrollController,
+      reverse: true,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        // With reverse, index 0 = bottom = last message
+        final reversedIndex = _messages.length - 1 - index;
+        final msg = _messages[reversedIndex];
+        final isMe = msg.senderId == _currentUserId;
 
-        // Mark as read whenever new messages arrive
-        _chatService.markAsRead(
-          matchId: widget.matchId,
-          userId: _currentUserId,
-        );
+        // Date separator — show above the first message of a new day
+        final showDate = reversedIndex == 0 ||
+            !_sameDay(
+                _messages[reversedIndex - 1].createdAt, msg.createdAt);
 
-        // reverse: true renders from the bottom up, so the newest
-        // messages are always visible without manual scrollToBottom().
-        // The list is reversed visually, so we iterate in reverse order.
-        return ListView.builder(
-          controller: _scrollController,
-          reverse: true,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          itemCount: messages.length,
-          itemBuilder: (context, index) {
-            // With reverse, index 0 = bottom = last message
-            final reversedIndex = messages.length - 1 - index;
-            final msg = messages[reversedIndex];
-            final isMe = msg.senderId == _currentUserId;
-
-            // Date separator — show above the first message of a new day
-            final showDate = reversedIndex == 0 ||
-                !_sameDay(
-                    messages[reversedIndex - 1].createdAt, msg.createdAt);
-
-            return Column(
-              children: [
-                if (showDate) _dateSeparator(msg.createdAt),
-                _MessageBubble(message: msg, isMe: isMe),
-              ],
-            );
-          },
+        return Column(
+          children: [
+            if (showDate) _dateSeparator(msg.createdAt),
+            _MessageBubble(message: msg, isMe: isMe),
+          ],
         );
       },
     );
@@ -404,21 +409,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 decoration: BoxDecoration(
                   gradient: AppColors.editorialGradient,
                   shape: BoxShape.circle,
-                  boxShadow: _isSending ? null : AppShadows.fab,
+                  boxShadow: AppShadows.fab,
                 ),
-                child: _isSending
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                child: const Icon(
+                  Icons.send_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ],
