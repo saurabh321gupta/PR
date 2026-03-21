@@ -70,6 +70,8 @@ class _OtpScreenState extends State<OtpScreen> {
   String get _enteredOtp => _controllers.map((c) => c.text).join();
 
   Future<void> _verify() async {
+    if (_isLoading) return;
+
     if (_enteredOtp.length < 6) {
       setState(() => _errorMessage = 'Please enter all 6 digits');
       return;
@@ -80,21 +82,27 @@ class _OtpScreenState extends State<OtpScreen> {
       _errorMessage = '';
     });
 
-    final isValid = await _authService.verifyOtp(widget.email, _enteredOtp);
-
-    if (!isValid) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Invalid or expired code. Try again.';
-      });
-      return;
-    }
-
-    // OTP valid — sign in or create account
     try {
+      final isValid = await _authService
+          .verifyOtp(widget.email, _enteredOtp)
+          .timeout(const Duration(seconds: 20));
+
+      if (!isValid) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Invalid or expired code. Try again.';
+        });
+        return;
+      }
+
+      // OTP valid — sign in or create account
       final user = widget.isSignIn
-          ? await _authService.signIn(widget.email)
-          : await _authService.createAccount(widget.email);
+          ? await _authService
+              .signIn(widget.email)
+              .timeout(const Duration(seconds: 20))
+          : await _authService
+              .createAccount(widget.email)
+              .timeout(const Duration(seconds: 20));
 
       if (!mounted) return;
 
@@ -108,19 +116,18 @@ class _OtpScreenState extends State<OtpScreen> {
         return;
       }
 
-      setState(() => _isLoading = false);
-
       if (widget.isSignIn) {
-        final hasProfile = await _authService.hasProfile(user.uid);
+        final hasProfile = await _authService
+            .hasProfile(user.uid)
+            .timeout(const Duration(seconds: 20));
         if (!mounted) return;
+        setState(() => _isLoading = false);
+
         if (hasProfile) {
           // Pop all auth screens (OTP + SignIn) back to _AuthGate root.
-          // _AuthGate's StreamBuilder already detected the sign-in and
-          // will show HomeScreen.
           Navigator.of(context).popUntil((route) => route.isFirst);
         } else {
           // Signed in but no profile — incomplete onboarding.
-          // Replace this screen with CityScreen to start onboarding.
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -133,6 +140,7 @@ class _OtpScreenState extends State<OtpScreen> {
         }
       } else {
         // New account created — start onboarding.
+        setState(() => _isLoading = false);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -143,6 +151,12 @@ class _OtpScreenState extends State<OtpScreen> {
           ),
         );
       }
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Network timeout. Please check your connection.';
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {

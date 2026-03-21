@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'otp_screen.dart';
@@ -30,6 +31,8 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _sendCode() async {
+    if (_isLoading) return;
+
     final email = _emailController.text.trim();
     final error = _validate(email);
     if (error != null) {
@@ -42,29 +45,47 @@ class _SignInScreenState extends State<SignInScreen> {
       _errorText = null;
     });
 
-    // Check account exists
-    final exists = await _authService.emailExists(email);
-    if (!exists) {
+    try {
+      // Check account exists
+      final exists = await _authService
+          .emailExists(email)
+          .timeout(const Duration(seconds: 20));
+
+      if (!exists) {
+        setState(() => _isLoading = false);
+        if (!mounted) return;
+        _showNoAccountDialog();
+        return;
+      }
+
+      final otp =
+          await _authService.sendOtp(email).timeout(const Duration(seconds: 20));
       setState(() => _isLoading = false);
+
       if (!mounted) return;
-      _showNoAccountDialog();
-      return;
-    }
-
-    final otp = await _authService.sendOtp(email);
-    setState(() => _isLoading = false);
-
-    if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OtpScreen(
-          email: email,
-          isSignIn: true,
-          devOtp: otp,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpScreen(
+            email: email,
+            isSignIn: true,
+            devOtp: otp,
+          ),
         ),
-      ),
-    );
+      );
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorText = 'Network timeout. Please check your connection.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorText = 'Something went wrong. Please try again.';
+      });
+    }
   }
 
   void _showNoAccountDialog() {
